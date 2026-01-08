@@ -548,7 +548,7 @@ Create `.env` file in project root:
 ```env
 # AI Configuration (CLIProxyAPI)
 PULSE_AI__BASE_URL=http://localhost:8317/v1
-PULSE_AI__API_KEY=opencode
+PULSE_AI__API_KEY=your api CliProxyAPI
 PULSE_AI__DEFAULT_MODEL=gemini-3-flash-preview
 
 # Stockbit Authentication (for broker flow analysis)
