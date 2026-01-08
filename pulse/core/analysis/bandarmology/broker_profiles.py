@@ -129,19 +129,17 @@ BROKER_CODE_TO_PROFILE: dict[str, BrokerProfile] = {}
 BROKER_CODE_TO_NAME: dict[str, str] = {}
 BROKER_CODE_TO_WEIGHT: dict[str, float] = {}
 
+# Build lookup tables from BROKER_PROFILES
+_profile_mapping = {
+    "SMART_MONEY_FOREIGN": BrokerProfile.SMART_MONEY_FOREIGN,
+    "BANDAR_GORENGAN": BrokerProfile.BANDAR_GORENGAN,
+    "RETAIL": BrokerProfile.RETAIL,
+    "LOCAL_INSTITUTIONAL": BrokerProfile.LOCAL_INSTITUTIONAL,
+    "MARKET_MAKER": BrokerProfile.MARKET_MAKER,
+}
+
 for profile_key, profile_data in BROKER_PROFILES.items():
-    profile_enum = BrokerProfile(
-        profile_key.replace("_", " ").title().replace("Gorengan", "/Gorengan")
-    )
-    # Fix enum mapping
-    profile_mapping = {
-        "SMART_MONEY_FOREIGN": BrokerProfile.SMART_MONEY_FOREIGN,
-        "BANDAR_GORENGAN": BrokerProfile.BANDAR_GORENGAN,
-        "RETAIL": BrokerProfile.RETAIL,
-        "LOCAL_INSTITUTIONAL": BrokerProfile.LOCAL_INSTITUTIONAL,
-        "MARKET_MAKER": BrokerProfile.MARKET_MAKER,
-    }
-    profile_enum = profile_mapping.get(profile_key, BrokerProfile.UNKNOWN)
+    profile_enum = _profile_mapping.get(profile_key, BrokerProfile.UNKNOWN)
 
     for code in profile_data["codes"]:
         BROKER_CODE_TO_PROFILE[code] = profile_enum
