@@ -1,0 +1,115 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pulse-cli"
+version = "0.1.0"
+description = "AI-powered Indonesian Stock Market Analysis CLI with Broker Flow Intelligence"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "pulse-cli", email = "pulse@example.com" }
+]
+keywords = [
+    "stock",
+    "indonesia",
+    "idx",
+    "analysis",
+    "broker",
+    "bandar",
+    "ai",
+    "cli",
+    "tui"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+
+dependencies = [
+    # AI & LLM
+    "openai>=1.0.0",
+    
+    # TUI Framework
+    "textual>=0.50.0",
+    "rich>=13.0.0",
+    
+    # Data Fetching
+    "yfinance>=0.2.0",
+    "requests>=2.31.0",
+    "httpx>=0.26.0",
+    "aiohttp>=3.9.0",
+    
+    # Technical Analysis
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "ta>=0.11.0",
+    
+    # Browser Automation (Stockbit Auth)
+    "playwright>=1.40.0",
+    
+    # Configuration & Utilities
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "pyyaml>=6.0.0",
+    "python-dotenv>=1.0.0",
+    
+    # Async Support
+    "asyncio>=3.4.3",
+    
+    # Caching
+    "diskcache>=5.6.0",
+    
+    # Reporting
+    "jinja2>=3.1.0",
+    
+    # ML & Data Science (SAPTA)
+    "scikit-learn>=1.3.0",
+    "xgboost>=2.0.0",
+    "joblib>=1.3.0",
+    
+    # Charts
+    "matplotlib>=3.8.0",
+    
+    # Planetary/Astronomical (SAPTA Astronacci)
+    "ephem>=4.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+pulse = "pulse.cli.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pulse"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,844 @@
+# Pulse CLI
+
+<div align="center">
+
+![Pulse CLI](https://img.shields.io/badge/Pulse-CLI-58a6ff?style=for-the-badge&logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11+-3776ab?style=for-the-badge&logo=python&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Alpha-orange?style=for-the-badge)
+
+**AI-Powered Indonesian Stock Market Analysis CLI**
+
+*Analisis saham Indonesia dengan kecerdasan buatan langsung dari terminal*
+
+[Features](#features) • [Installation](#installation) • [Usage](#usage) • [Commands](#commands) • [SAPTA Engine](#sapta-engine) • [Configuration](#configuration)
+
+[![GitHub](https://img.shields.io/badge/GitHub-sukirman1901%2FPulse--CLI-181717?style=flat-square&logo=github)](https://github.com/sukirman1901/Pulse-CLI)
+
+</div>
+
+---
+
+## Overview
+
+**Pulse CLI** adalah aplikasi Terminal User Interface (TUI) yang powerful untuk analisis pasar saham Indonesia (IDX). Menggabungkan:
+
+- **Real-time Data** dari Yahoo Finance
+- **Technical Analysis** (RSI, MACD, Bollinger Bands, Support/Resistance)
+- **Fundamental Analysis** (PE, PB, ROE, Dividend Yield)
+- **AI/LLM Integration** untuk analisis cerdas dan natural language
+- **SAPTA Engine** - Sistem deteksi pre-markup berbasis Machine Learning
+- **Trading Plan Generator** dengan TP/SL/Risk-Reward calculations
+- **Broker Flow Analysis** via Stockbit integration
+
+---
+
+## Features
+
+### Core Features
+
+| Feature | Description |
+|---------|-------------|
+| **Smart Agent** | True agentic AI yang mengambil data real sebelum analisis |
+| **Natural Language** | Tanya dalam Bahasa Indonesia atau English |
+| **Stock Screening** | Filter 900+ saham IDX dengan berbagai kriteria |
+| **Technical Analysis** | 15+ indikator teknikal otomatis |
+| **Trading Plan** | Generate TP/SL/RR dengan position sizing |
+| **SAPTA Detection** | Deteksi fase pre-markup dengan ML |
+| **Price Forecast** | Prediksi harga dengan confidence interval |
+| **Chart Generation** | Export chart sebagai PNG |
+
+### Supported Analysis
+
+```
+Technical Indicators        Fundamental Metrics       SAPTA Modules
+─────────────────────      ──────────────────────    ─────────────────────
+• RSI (14)                 • P/E Ratio               • Supply Absorption
+• MACD + Signal + Hist     • P/B Ratio               • Compression
+• SMA (20, 50, 200)        • ROE / ROA               • BB Squeeze
+• EMA (9, 21, 55)          • Net Profit Margin       • Elliott Wave
+• Bollinger Bands          • Debt to Equity          • Time Projection
+• Stochastic K/D           • Dividend Yield          • Anti-Distribution
+• ATR (14)                 • Revenue Growth
+• Support/Resistance       • Earnings Growth
+• Volume Analysis          • Market Cap
+```
+
+---
+
+## Installation
+
+### Prerequisites
+
+- **Python 3.11+** (required)
+- **pip** or **uv** package manager
+- **Git** (for cloning)
+
+### Quick Install
+
+```bash
+# Clone repository
+git clone https://github.com/sukirman1901/Pulse-CLI.git
+cd Pulse-CLI
+
+# Create virtual environment (recommended)
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+# or
+.venv\Scripts\activate     # Windows
+
+# Install package
+pip install -e .
+
+# Install Playwright browsers (for Stockbit auth - optional)
+playwright install chromium
+```
+
+### Install with Development Dependencies
+
+```bash
+pip install -e ".[dev]"
+```
+
+### Using uv (Faster)
+
+```bash
+# Install uv if not installed
+pip install uv
+
+# Install with uv
+uv pip install -e .
+```
+
+### Verify Installation
+
+```bash
+# Check if pulse is installed
+pulse --help
+
+# Or run directly
+python -m pulse.cli.app
+```
+
+---
+
+## Usage
+
+### Starting Pulse CLI
+
+```bash
+# Simply run
+pulse
+```
+
+You'll see the TUI interface:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Pulse - Type /help for commands                                 │
+│                                                                 │
+│                                                                 │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│ > Message Pulse...                                              │
+│                                                           pulse │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Basic Interactions
+
+#### Natural Language (Bahasa Indonesia)
+
+```
+> analisa BBCA
+> gimana kondisi IHSG hari ini?
+> bandingkan BBRI dan BMRI
+> carikan saham yang oversold
+> buatkan trading plan TLKM
+> cek pre-markup ANTM
+```
+
+#### Natural Language (English)
+
+```
+> analyze BBCA
+> what's the technical outlook for ASII?
+> compare banking stocks BBCA BBRI BMRI
+> find undervalued stocks
+> generate trading plan for UNVR
+```
+
+#### Slash Commands
+
+```
+> /analyze BBCA
+> /technical BBRI
+> /fundamental TLKM
+> /chart ASII 6mo
+> /forecast UNVR 14
+> /plan BMRI
+> /sapta ANTM
+> /screen oversold
+```
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Enter` | Submit message/command |
+| `Ctrl+C` | Quit application |
+| `Ctrl+L` | Clear chat history |
+| `Escape` | Close command palette |
+| `Tab` | Navigate command palette |
+| `↑` `↓` | Navigate options |
+
+---
+
+## Commands
+
+### Quick Reference
+
+| Command | Aliases | Description |
+|---------|---------|-------------|
+| `/help` | `/h`, `/?` | Show available commands |
+| `/analyze` | `/a`, `/stock` | Complete stock analysis |
+| `/technical` | `/ta`, `/tech` | Technical analysis only |
+| `/fundamental` | `/fa`, `/fund` | Fundamental analysis only |
+| `/broker` | `/b`, `/flow` | Broker flow analysis |
+| `/chart` | `/c`, `/grafik` | Generate price chart |
+| `/forecast` | `/fc`, `/prediksi` | Price prediction |
+| `/screen` | `/s`, `/filter` | Stock screening |
+| `/sector` | `/sec` | Sector analysis |
+| `/compare` | `/cmp`, `/vs` | Compare multiple stocks |
+| `/plan` | `/tp`, `/sl` | Trading plan generator |
+| `/sapta` | `/premarkup` | SAPTA pre-markup detection |
+| `/ihsg` | `/index`, `/market` | Market index status |
+| `/models` | `/model`, `/m` | Switch AI model |
+| `/auth` | `/login` | Stockbit authentication |
+| `/clear` | `/cls` | Clear chat history |
+
+### Command Details
+
+#### `/analyze <TICKER>` - Complete Analysis
+
+Analisis lengkap mencakup harga, teknikal, dan AI insight.
+
+```
+/analyze BBCA
+```
+
+Output:
+```
+BBCA - Bank Central Asia Tbk
+
+Price: Rp 9,850 (+75, +0.77%)
+Volume: 15,234,500 (Avg: 12,456,000)
+Range: 9,775 - 9,900
+52W: 8,100 - 10,450
+
+Technical:
+  RSI(14): 58.3 - Neutral
+  MACD: Bullish crossover
+  Trend: Bullish
+  Signal: Buy
+
+AI Insight:
+BBCA menunjukkan momentum positif dengan RSI di zona netral...
+```
+
+#### `/technical <TICKER>` - Technical Analysis
+
+```
+/technical BBRI
+```
+
+Output:
+```
+Technical Analysis: BBRI
+
+  RSI(14): 45.2 (Neutral)
+  MACD: -12.5 (Signal: -15.3) - Bullish
+  SMA20: 5,425 | SMA50: 5,380
+  Bollinger: 5,200 - 5,400 - 5,600
+  Stochastic: K=35.2, D=38.5
+  Support: 5,200 | Resistance: 5,600
+  Trend: Sideways | Signal: Neutral
+```
+
+#### `/chart <TICKER> [period]` - Price Chart
+
+Generate dan save chart sebagai PNG.
+
+```
+/chart TLKM 3mo
+/chart ASII 1y
+```
+
+Periods: `1mo`, `3mo`, `6mo`, `1y`, `2y`
+
+#### `/forecast <TICKER> [days]` - Price Forecast
+
+```
+/forecast UNVR 14
+```
+
+Output:
+```
+Forecast: UNVR (14 days)
+
+Current: Rp 4,250
+Target: Rp 4,420 (+4.00%)
+Trend: UP
+Support: Rp 4,100
+Resistance: Rp 4,500
+Confidence: 72%
+
+Chart saved: charts/UNVR_forecast_20240115.png
+```
+
+#### `/screen <criteria>` - Stock Screening
+
+**Preset Screeners:**
+
+```
+/screen oversold      # RSI < 30
+/screen overbought    # RSI > 70
+/screen bullish       # MACD bullish + price > SMA20
+/screen bearish       # MACD bearish + price < SMA20
+/screen breakout      # Near resistance + volume spike
+/screen momentum      # RSI 50-70 + MACD bullish
+/screen undervalued   # PE < 15 + ROE > 10%
+```
+
+**Flexible Criteria:**
+
+```
+/screen rsi<30
+/screen pe<15
+/screen rsi>70 and pe<20
+```
+
+**Universe Options:**
+
+```
+/screen oversold --universe=lq45      # 45 stocks (fast)
+/screen bullish --universe=idx80      # 80 stocks
+/screen momentum --universe=popular   # 113 stocks
+/screen breakout --universe=all       # 955 stocks (slow)
+```
+
+#### `/plan <TICKER> [account_size]` - Trading Plan
+
+```
+/plan BBCA
+/plan BBRI 50000000
+```
+
+Output:
+```
+TRADING PLAN: BBCA
+Generated: 2024-01-15 14:30
+
+=== ENTRY ===
+Price: Rp 9,850 (current)
+Type: Market
+Trend: Bullish | Signal: Buy
+
+=== TAKE PROFIT ===
+TP1: Rp 10,150 (+3.05%) - Conservative
+TP2: Rp 10,450 (+6.09%) - Moderate
+TP3: Rp 10,800 (+9.64%) - Aggressive
+
+=== STOP LOSS ===
+SL: Rp 9,550 (-3.05%)
+Method: Hybrid
+
+=== RISK/REWARD ===
+Risk: Rp 300 per share (3.05%)
+Reward (TP1): Rp 300 (3.05%)
+R:R to TP1: 1:1.0 [FAIR]
+R:R to TP2: 1:2.0 [GOOD]
+
+Trade Quality: FAIR
+Confidence: 65%
+
+=== POSITION SIZING (2% Risk) ===
+Account: Rp 100,000,000
+Max Risk: Rp 2,000,000
+Suggested: 66 lot (6,600 shares)
+Position Value: Rp 65,010,000 (65.0% of account)
+
+=== EXECUTION STRATEGY ===
+1. Entry: Buy at market or limit Rp 9,850
+2. Set stop loss immediately at Rp 9,550
+3. TP1: Sell 50% position at Rp 10,150
+4. After TP1 hit: Move SL to breakeven
+5. TP2: Sell remaining 50% at Rp 10,450
+```
+
+#### `/compare <TICKER1> <TICKER2> ...` - Compare Stocks
+
+```
+/compare BBCA BBRI BMRI BBNI
+```
+
+Output:
+```
+Stock Comparison
+
+Ticker   Price        Change      Volume
+------------------------------------------------
+BBCA       9,850      +0.77%      15,234,500
+BBRI       5,425      +1.23%      45,678,900
+BMRI       6,150      +0.65%      23,456,700
+BBNI       5,875      -0.42%      18,765,400
+```
+
+---
+
+## SAPTA Engine
+
+### Overview
+
+**SAPTA** (System for Analyzing Pre-markup Technical Accumulation) adalah engine ML-powered untuk mendeteksi saham yang sedang dalam fase **pre-markup** - fase akumulasi sebelum harga breakout.
+
+### How It Works
+
+SAPTA menggunakan 6 modul analisis:
+
+| Module | Weight | Description |
+|--------|--------|-------------|
+| **Supply Absorption** | 25% | Deteksi akumulasi smart money melalui volume dan price action |
+| **Compression** | 20% | Volatility contraction - range harga yang menyempit |
+| **BB Squeeze** | 15% | Bollinger Band squeeze detection |
+| **Elliott Wave** | 15% | Posisi wave dan Fibonacci retracement |
+| **Time Projection** | 15% | Fibonacci time windows + planetary aspects |
+| **Anti-Distribution** | 10% | Filter untuk menghindari fase distribusi |
+
+### Status Levels
+
+| Status | Score | Meaning |
+|--------|-------|---------|
+| **PRE-MARKUP** | >= 47 | Siap breakout dalam waktu dekat |
+| **SIAP** | >= 35 | Hampir siap, perlu monitoring ketat |
+| **WATCHLIST** | >= 24 | Masih dalam tahap akumulasi awal |
+| **ABAIKAN** | < 24 | Belum menunjukkan sinyal pre-markup |
+
+### Usage
+
+**Single Stock Analysis:**
+
+```
+/sapta BBCA
+/sapta ANTM --detailed
+```
+
+**Scan Multiple Stocks:**
+
+```
+/sapta scan              # Scan LQ45 (default)
+/sapta scan lq45         # 45 stocks
+/sapta scan idx80        # 80 stocks
+/sapta scan popular      # 113 stocks
+/sapta scan all          # 955 stocks
+```
+
+**Natural Language:**
+
+```
+> carikan saham pre-markup
+> carikan saham siap breakout
+> scan pre-markup semua saham
+```
+
+### Example Output
+
+```
+SAPTA Analysis: ANTM
+========================================
+Status: [PRE-MARKUP]
+Score: 68.5/100
+Confidence: HIGH
+ML Probability: 78%
+Wave Phase: Wave 3 (Impulse)
+Fib Retracement: 61.8%
+Projected Window: 5-8 days
+Days to Window: 3
+
+Module Breakdown
+------------------------------
+  [+] Absorption: 22.5/25
+  [+] Compression: 18.0/20
+  [+] BB Squeeze: 12.0/15
+  [+] Elliott: 10.5/15
+  [-] Time Projection: 5.5/15
+  [+] Anti-Distribution: 0.0/10
+
+Signals
+------------------------------
+  - High volume accumulation detected
+  - Volatility compression 15 days
+  - Bollinger squeeze active
+  - Wave 3 position confirmed
+  - Near Fibonacci time cluster
+```
+
+---
+
+## Configuration
+
+### Environment Variables
+
+Create `.env` file in project root:
+
+```env
+# AI Configuration (CLIProxyAPI)
+PULSE_AI__BASE_URL=http://localhost:8317/v1
+PULSE_AI__API_KEY=opencode
+PULSE_AI__DEFAULT_MODEL=gemini-3-flash-preview
+
+# Stockbit (Optional - for broker flow analysis)
+STOCKBIT_USERNAME=your_username
+STOCKBIT_PASSWORD=your_password
+
+# Debug
+PULSE_DEBUG=false
+```
+
+### Configuration File
+
+Edit `config/pulse.yaml`:
+
+```yaml
+# AI Settings (CLIProxyAPI)
+ai:
+  base_url: "http://localhost:8317/v1"
+  api_key: "opencode"
+  default_model: "gemini-3-flash-preview"
+  temperature: 0.7
+  max_tokens: 4096
+  timeout: 120
+
+# Data Settings
+data:
+  cache_ttl: 3600  # 1 hour
+  default_period: "3mo"
+
+# Analysis Settings
+analysis:
+  rsi_period: 14
+  rsi_oversold: 30
+  rsi_overbought: 70
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+
+# UI Settings
+ui:
+  theme: "dark"
+  chart_width: 60
+  chart_height: 15
+  max_results: 50
+```
+
+### Available AI Models
+
+| Model ID | Display Name |
+|----------|--------------|
+| `gemini-3-flash-preview` | Gemini 3 Flash Preview |
+| `gemini-2.5-flash` | Gemini 2.5 Flash |
+| `gemini-2.5-flash-lite` | Gemini 2.5 Flash Lite |
+| `gemini-claude-sonnet-4-5` | Claude Sonnet 4.5 |
+| `gemini-claude-sonnet-4-5-thinking` | Claude Sonnet 4.5 Thinking |
+| `gemini-claude-opus-4-5-thinking` | Claude Opus 4.5 Thinking |
+| `gpt-oss-120b-medium` | GPT OSS 120B Medium |
+
+Switch model:
+```
+/models              # Open model selector
+/models gemini-3-flash-preview
+```
+
+---
+
+## Stock Universe
+
+### Preset Universes
+
+| Universe | Count | Description |
+|----------|-------|-------------|
+| `LQ45` | 45 | Most liquid stocks |
+| `IDX80` | 83 | LQ45 + additional liquid stocks |
+| `POPULAR` | 113 | LQ45 + IDX80 + high retail interest |
+| `ALL` | 955 | All IDX listed stocks |
+
+### Data Source
+
+Stock data fetched from Yahoo Finance with `.JK` suffix for Indonesian stocks.
+
+Supported indices:
+- **IHSG** (^JKSE) - IDX Composite
+- **LQ45** (^JKLQ45) - IDX LQ45
+- **IDX30** (^JKIDX30) - IDX30
+- **JII** (^JKII) - Jakarta Islamic Index
+
+---
+
+## Project Structure
+
+```
+pulse-cli/
+├── pulse/
+│   ├── __init__.py
+│   ├── cli/                      # TUI Application
+│   │   ├── __init__.py
+│   │   ├── app.py                # Main Textual app
+│   │   └── commands/
+│   │       ├── __init__.py
+│   │       └── registry.py       # Command handlers
+│   │
+│   ├── core/                     # Core Business Logic
+│   │   ├── __init__.py
+│   │   ├── config.py             # Settings (Pydantic)
+│   │   ├── models.py             # Data models
+│   │   ├── smart_agent.py        # Agentic AI orchestrator
+│   │   ├── screener.py           # Stock screening
+│   │   ├── trading_plan.py       # TP/SL generator
+│   │   ├── chart_generator.py    # PNG charts
+│   │   ├── forecasting.py        # Price prediction
+│   │   │
+│   │   ├── data/                 # Data Layer
+│   │   │   ├── __init__.py
+│   │   │   ├── yfinance.py       # Yahoo Finance fetcher
+│   │   │   ├── stockbit.py       # Stockbit integration
+│   │   │   └── cache.py          # Disk cache
+│   │   │
+│   │   ├── analysis/             # Analysis Modules
+│   │   │   ├── __init__.py
+│   │   │   ├── technical.py      # Technical indicators
+│   │   │   ├── fundamental.py    # Fundamental analysis
+│   │   │   ├── broker_flow.py    # Broker flow
+│   │   │   └── sector.py         # Sector analysis
+│   │   │
+│   │   └── sapta/                # SAPTA Engine
+│   │       ├── __init__.py
+│   │       ├── engine.py         # Main orchestrator
+│   │       ├── models.py         # SAPTA models
+│   │       ├── modules/          # 6 Analysis modules
+│   │       │   ├── __init__.py
+│   │       │   ├── base.py
+│   │       │   ├── absorption.py
+│   │       │   ├── compression.py
+│   │       │   ├── bb_squeeze.py
+│   │       │   ├── elliott.py
+│   │       │   ├── time_projection.py
+│   │       │   └── anti_distribution.py
+│   │       ├── ml/               # Machine Learning
+│   │       │   ├── __init__.py
+│   │       │   ├── trainer.py
+│   │       │   ├── features.py
+│   │       │   ├── labeling.py
+│   │       │   └── data_loader.py
+│   │       └── data/             # Trained models
+│   │           ├── sapta_model.pkl
+│   │           └── thresholds.json
+│   │
+│   ├── ai/                       # AI Integration
+│   │   ├── __init__.py
+│   │   ├── client.py             # OpenAI-compatible client
+│   │   └── prompts.py            # System prompts
+│   │
+│   └── utils/                    # Utilities
+│       ├── __init__.py
+│       ├── logger.py
+│       ├── formatters.py
+│       ├── validators.py
+│       └── constants.py
+│
+├── config/
+│   └── pulse.yaml                # Configuration file
+│
+├── data/
+│   ├── tickers.json              # 955 IDX tickers
+│   └── cache/                    # Disk cache
+│
+├── tests/                        # Test suite
+│   └── ...
+│
+├── pyproject.toml                # Project config & dependencies
+├── README.md                     # This file
+├── .env.example                  # Environment template
+└── .gitignore
+```
+
+---
+
+## Development
+
+### Setup Development Environment
+
+```bash
+# Clone and install
+git clone https://github.com/yourusername/pulse-cli.git
+cd pulse-cli
+
+# Create venv
+python -m venv .venv
+source .venv/bin/activate
+
+# Install with dev dependencies
+pip install -e ".[dev]"
+
+# Install pre-commit hooks (optional)
+pre-commit install
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=pulse --cov-report=html
+
+# Run specific test
+pytest tests/test_core/test_screener.py -v
+```
+
+### Code Quality
+
+```bash
+# Linting with ruff
+ruff check pulse/
+
+# Type checking with mypy
+mypy pulse/
+
+# Format code
+ruff format pulse/
+```
+
+### Training SAPTA Model
+
+```bash
+# Train new model with historical data
+python -m pulse.core.sapta.ml.train_model
+
+# This will:
+# 1. Load historical price data
+# 2. Generate features from 6 modules
+# 3. Label data based on forward returns
+# 4. Train XGBoost classifier
+# 5. Save model to pulse/core/sapta/data/
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**1. "No data found for XXXX"**
+
+```
+Cause: Ticker tidak valid atau tidak ada di Yahoo Finance
+Solution: Pastikan ticker benar dengan suffix .JK (contoh: BBCA.JK)
+```
+
+**2. "AI request failed"**
+
+```
+Cause: AI backend tidak tersedia
+Solution: 
+  - Pastikan CLIProxyAPI running di localhost:8317
+  - Atau ubah PULSE_AI__BASE_URL di .env
+```
+
+**3. "Insufficient data for SAPTA"**
+
+```
+Cause: Saham baru listing atau data historis < 100 hari
+Solution: SAPTA membutuhkan minimal 100 hari data historis
+```
+
+**4. "Stockbit not authenticated"**
+
+```
+Cause: Belum login ke Stockbit
+Solution: Jalankan /auth dan ikuti instruksi
+```
+
+### Debug Mode
+
+Enable debug logging:
+
+```bash
+PULSE_DEBUG=true pulse
+```
+
+Or in `.env`:
+```env
+PULSE_DEBUG=true
+```
+
+---
+
+## Roadmap
+
+- [ ] **v0.2.0** - Watchlist & Portfolio tracking
+- [ ] **v0.2.1** - Alert notifications
+- [ ] **v0.3.0** - Backtesting framework
+- [ ] **v0.4.0** - Strategy builder
+- [ ] **v0.5.0** - Multi-market support (US, Crypto)
+- [ ] **v1.0.0** - Stable release
+
+---
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines first.
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+---
+
+## Disclaimer
+
+**IMPORTANT:** Pulse CLI is for **educational and informational purposes only**. 
+
+- Not financial advice
+- Past performance doesn't guarantee future results
+- Always do your own research (DYOR)
+- Invest responsibly
+
+The developers are not responsible for any financial losses incurred from using this tool.
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- [Textual](https://github.com/Textualize/textual) - Amazing TUI framework
+- [yfinance](https://github.com/ranaroussi/yfinance) - Yahoo Finance API wrapper
+- [TA-Lib](https://github.com/bukosabino/ta) - Technical analysis library
+- [Rich](https://github.com/Textualize/rich) - Beautiful terminal formatting
+
+---
+
+<div align="center">
+
+**Made with :heart: for Indonesian Stock Market**
+
+[Report Bug](https://github.com/sukirman1901/Pulse-CLI/issues) • [Request Feature](https://github.com/sukirman1901/Pulse-CLI/issues)
+
+</div>
