@@ -49,7 +49,7 @@ class CommandRegistry:
         cmd = Command(name, handler, description, usage, aliases)
         self._commands[name.lower()] = cmd
 
-        for alias in (aliases or []):
+        for alias in aliases or []:
             self._commands[alias.lower()] = cmd
 
     def get(self, name: str) -> Command | None:
@@ -222,7 +222,7 @@ class CommandRegistry:
         if args:
             cmd = self.get(args.strip())
             if cmd:
-                aliases_str = ', '.join(f'/{a}' for a in cmd.aliases) if cmd.aliases else 'None'
+                aliases_str = ", ".join(f"/{a}" for a in cmd.aliases) if cmd.aliases else "None"
                 return f"""/{cmd.name}
 
 Description: {cmd.description}
@@ -337,7 +337,7 @@ Aliases: {aliases_str}
         lines = [f"Technical Analysis: {ticker}\n"]
 
         for item in summary:
-            status = f" ({item['status']})" if item.get('status') else ""
+            status = f" ({item['status']})" if item.get("status") else ""
             lines.append(f"  {item['name']}: {item['value']}{status}")
 
         return "\n".join(lines)
@@ -365,11 +365,11 @@ Aliases: {aliases_str}
 
         current_category = ""
         for item in summary:
-            if item['category'] != current_category:
-                current_category = item['category']
+            if item["category"] != current_category:
+                current_category = item["category"]
                 lines.append(f"\n{current_category}")
 
-            status = f" ({item['status']})" if item.get('status') else ""
+            status = f" ({item['status']})" if item.get("status") else ""
             lines.append(f"  {item['name']}: {item['value']}{status}")
 
         return "\n".join(lines)
@@ -412,7 +412,8 @@ Example:
 
         if "--universe=" in args.lower():
             import re
-            match = re.search(r'--universe=(\w+)', args.lower())
+
+            match = re.search(r"--universe=(\w+)", args.lower())
             if match:
                 universe_map = {
                     "lq45": StockUniverse.LQ45,
@@ -421,7 +422,7 @@ Example:
                     "all": StockUniverse.ALL,
                 }
                 universe_type = universe_map.get(match.group(1))
-                criteria_str = re.sub(r'\s*--universe=\w+', '', args).strip()
+                criteria_str = re.sub(r"\s*--universe=\w+", "", args).strip()
 
         screener = StockScreener(universe_type=universe_type)
         args_lower = criteria_str.strip().lower()
@@ -503,14 +504,16 @@ Example:
         for ticker in tickers[:4]:  # Max 4 tickers
             stock = await fetcher.fetch_stock(ticker)
             if stock:
-                results.append({
-                    "ticker": stock.ticker,
-                    "name": stock.name or ticker,
-                    "price": stock.current_price,
-                    "change": stock.change,
-                    "change_pct": stock.change_percent,
-                    "volume": stock.volume,
-                })
+                results.append(
+                    {
+                        "ticker": stock.ticker,
+                        "name": stock.name or ticker,
+                        "price": stock.current_price,
+                        "change": stock.change,
+                        "change_pct": stock.change_percent,
+                        "volume": stock.volume,
+                    }
+                )
 
         if len(results) < 2:
             return "Could not fetch enough data for comparison."
@@ -549,9 +552,9 @@ Example:
         if df is None or df.empty:
             return f"Could not fetch historical data for {ticker}"
 
-        dates = df.index.strftime('%Y-%m-%d').tolist()
-        prices = df['close'].tolist()
-        volumes = df['volume'].tolist() if 'volume' in df.columns else None
+        dates = df.index.strftime("%Y-%m-%d").tolist()
+        prices = df["close"].tolist()
+        volumes = df["volume"].tolist() if "volume" in df.columns else None
 
         # Generate PNG chart
         generator = ChartGenerator()
@@ -597,8 +600,8 @@ Chart saved: {filepath}"""
         if df is None or df.empty:
             return f"Not enough data for forecasting {ticker}"
 
-        prices = df['close'].tolist()
-        dates = df.index.strftime('%Y-%m-%d').tolist()
+        prices = df["close"].tolist()
+        dates = df.index.strftime("%Y-%m-%d").tolist()
 
         forecaster = PriceForecaster()
         result = await forecaster.forecast(ticker, prices, dates, days)
@@ -615,7 +618,7 @@ Chart saved: {filepath}"""
             forecast=result.predictions,
             lower_bound=result.lower_bound,
             upper_bound=result.upper_bound,
-            forecast_days=days
+            forecast_days=days,
         )
 
         # Format summary
@@ -648,22 +651,114 @@ Confidence: {result.confidence:.0f}%"""
         from pulse.core.data.stockbit import StockbitClient
 
         client = StockbitClient()
+        args_lower = args.strip().lower() if args else ""
 
+        # Check subcommands
+        if args_lower.startswith("set-token") or args_lower.startswith("token"):
+            # Extract token from args
+            parts = args.strip().split(maxsplit=1)
+            if len(parts) < 2:
+                return """Set Stockbit Token
+
+Usage: /auth set-token <JWT_TOKEN>
+
+How to get token:
+1. Open https://stockbit.com in Chrome and login
+2. Open DevTools (F12 or Cmd+Option+I)
+3. Go to Network tab
+4. Click any stock (e.g., BBCA)
+5. Find request to exodus.stockbit.com
+6. Copy the Authorization header value (without 'Bearer ')
+
+Example:
+/auth set-token eyJhbGciOiJSUzI1NiIs...
+
+Note: Token is valid for ~24 hours. Update when expired."""
+
+            token = parts[1].strip()
+            # Remove "Bearer " prefix if present
+            if token.lower().startswith("bearer "):
+                token = token[7:]
+
+            success = client.set_token(token, save=True)
+            if success:
+                status = client.get_token_status()
+                hours = status.get("hours_remaining", 0)
+                return f"""✅ Token saved successfully!
+
+Token valid for: {hours:.1f} hours
+Saved to: {client.secrets_file}
+
+You can now use /broker command."""
+            else:
+                return "❌ Invalid token. Make sure you copied the full JWT token."
+
+        if args_lower == "status":
+            status = client.get_token_status()
+            if not status["has_token"]:
+                return """❌ No Stockbit token found.
+
+Set token with: /auth set-token <JWT_TOKEN>
+Or set STOCKBIT_TOKEN environment variable."""
+
+            expires = (
+                status["expires_at"].strftime("%Y-%m-%d %H:%M")
+                if status["expires_at"]
+                else "Unknown"
+            )
+            hours = status["hours_remaining"]
+            valid_str = "✅ Valid" if status["is_valid"] else "❌ Expired"
+
+            return f"""Stockbit Auth Status
+
+Status: {valid_str}
+Source: {status["source"]}
+Expires: {expires}
+Hours remaining: {hours:.1f if hours else 0}"""
+
+        # Default - show auth info
         if client.is_authenticated:
-            return "Already authenticated with Stockbit."
+            status = client.get_token_status()
+            hours = status.get("hours_remaining", 0)
+            if status["is_valid"]:
+                return f"""✅ Authenticated with Stockbit
+
+Token source: {status["source"]}
+Valid for: {hours:.1f} hours
+
+Commands:
+  /auth status     - Check token status
+  /auth set-token  - Set new token"""
+            else:
+                return f"""⚠️ Stockbit token expired!
+
+Please update your token:
+  /auth set-token <NEW_TOKEN>
+
+How to get token:
+1. Login to stockbit.com in browser
+2. Open DevTools > Network tab
+3. Copy Authorization header from any exodus.stockbit.com request"""
 
         return """Stockbit Authentication
 
-To authenticate:
-1. Set environment variables:
-   - STOCKBIT_USERNAME
-   - STOCKBIT_PASSWORD
-   
-2. Run authentication (will open browser):
-   python -c "from pulse.core.data.stockbit import StockbitClient; import asyncio; asyncio.run(StockbitClient().authenticate_playwright())"
+You need a Stockbit token to use broker flow features.
 
-Note: Browser will open to capture authentication token.
-"""
+Commands:
+  /auth set-token <TOKEN>  - Set token manually (recommended)
+  /auth status             - Check token status
+
+How to get token:
+1. Open https://stockbit.com in Chrome and login
+2. Open DevTools (F12 or Cmd+Option+I)
+3. Go to Network tab
+4. Click any stock page
+5. Find request to exodus.stockbit.com
+6. Copy the Authorization header (after 'Bearer ')
+
+Alternative: Set STOCKBIT_TOKEN environment variable in .env file.
+
+Note: Token is valid for ~24 hours."""
 
     async def _cmd_ihsg(self, args: str) -> str:
         """Show IHSG or other index status."""
@@ -700,8 +795,8 @@ Example: /ihsg LQ45
 
         if df is not None and not df.empty:
             generator = ChartGenerator()
-            dates = df.index.strftime('%Y-%m-%d').tolist()
-            prices = df['close'].tolist()
+            dates = df.index.strftime("%Y-%m-%d").tolist()
+            prices = df["close"].tolist()
             chart_path = generator.price_chart(index_name, dates, prices, period="3mo")
 
         # Format response
@@ -819,6 +914,7 @@ Modules:
             if universe in ["all", "semua", "955"]:
                 try:
                     from pulse.core.sapta.ml.data_loader import SaptaDataLoader
+
                     loader = SaptaDataLoader()
                     tickers = loader.get_all_tickers()
                     universe_name = f"ALL ({len(tickers)} stocks)"
@@ -845,8 +941,7 @@ Modules:
                 return f"No stocks found in {universe_name} matching SAPTA criteria."
 
             return engine.format_scan_results(
-                results,
-                title=f"SAPTA Scan: {universe_name} ({len(results)} found)"
+                results, title=f"SAPTA Scan: {universe_name} ({len(results)} found)"
             )
 
         # Single stock analysis

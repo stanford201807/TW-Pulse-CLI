@@ -33,21 +33,37 @@ class StockbitClient:
     ):
         """
         Initialize Stockbit client.
-        
+
         Args:
             secrets_file: Path to secrets.json with access token
             auth_state_file: Path to auth_state.json with cookies
         """
         self.base_url = settings.stockbit.api_base_url
         self.secrets_file = secrets_file or (settings.base_dir / settings.stockbit.secrets_file)
-        self.auth_state_file = auth_state_file or (settings.base_dir / settings.stockbit.auth_state_file)
+        self.auth_state_file = auth_state_file or (
+            settings.base_dir / settings.stockbit.auth_state_file
+        )
         self._token: str | None = None
         self._token_loaded_at: float | None = None
 
     def _load_token(self) -> str | None:
-        """Load access token from secrets file."""
+        """Load access token from environment variable or secrets file.
+
+        Priority:
+        1. STOCKBIT_TOKEN environment variable (recommended)
+        2. secrets.json file
+        """
+        # Priority 1: Environment variable
+        env_token = os.getenv("STOCKBIT_TOKEN")
+        if env_token:
+            log.debug("Using token from STOCKBIT_TOKEN environment variable")
+            self._token = env_token
+            self._token_loaded_at = time.time()
+            return self._token
+
+        # Priority 2: Secrets file
         if not self.secrets_file.exists():
-            log.warning(f"Secrets file not found: {self.secrets_file}")
+            log.warning(f"No token found. Set STOCKBIT_TOKEN env var or create {self.secrets_file}")
             return None
 
         try:
@@ -55,6 +71,7 @@ class StockbitClient:
                 data = json.load(f)
                 self._token = data.get("access_token")
                 self._token_loaded_at = data.get("updated_at")
+                log.debug(f"Using token from {self.secrets_file}")
                 return self._token
         except Exception as e:
             log.error(f"Error loading token: {e}")
@@ -65,14 +82,115 @@ class StockbitClient:
         self.secrets_file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(self.secrets_file, "w") as f:
-            json.dump({
-                "access_token": token,
-                "updated_at": time.time()
-            }, f)
+            json.dump({"access_token": token, "updated_at": time.time()}, f)
 
         self._token = token
         self._token_loaded_at = time.time()
         log.info(f"Token saved to {self.secrets_file}")
+
+    def set_token(self, token: str, save: bool = True) -> bool:
+        """Set access token manually.
+
+        Args:
+            token: JWT access token from Stockbit
+            save: Whether to save to secrets file (default True)
+
+        Returns:
+            True if token is valid and set successfully
+        """
+        # Validate token format
+        if not token or not token.startswith("eyJ"):
+            log.error("Invalid token format. Token should be a JWT starting with 'eyJ'")
+            return False
+
+        # Check token expiry
+        expiry = self.get_token_expiry(token)
+        if expiry and expiry < datetime.now():
+            log.error(f"Token is expired (expired at {expiry})")
+            return False
+
+        self._token = token
+        self._token_loaded_at = time.time()
+
+        if save:
+            self._save_token(token)
+
+        if expiry:
+            hours_left = (expiry - datetime.now()).total_seconds() / 3600
+            log.info(f"Token set successfully. Valid for {hours_left:.1f} hours")
+        else:
+            log.info("Token set successfully")
+
+        return True
+
+    def get_token_expiry(self, token: str = None) -> datetime | None:
+        """Get token expiry datetime.
+
+        Args:
+            token: JWT token to check (uses current token if None)
+
+        Returns:
+            Expiry datetime or None if cannot parse
+        """
+        import base64
+
+        token = token or self._token
+        if not token:
+            return None
+
+        try:
+            parts = token.split(".")
+            if len(parts) != 3:
+                return None
+
+            payload = parts[1]
+            # Add padding if needed
+            padding = 4 - len(payload) % 4
+            if padding != 4:
+                payload += "=" * padding
+
+            decoded = base64.b64decode(payload)
+            claims = json.loads(decoded)
+
+            exp = claims.get("exp")
+            if exp:
+                return datetime.fromtimestamp(exp)
+            return None
+        except Exception:
+            return None
+
+    def get_token_status(self) -> dict:
+        """Get current token status.
+
+        Returns:
+            Dict with token status info
+        """
+        if not self.token:
+            return {
+                "has_token": False,
+                "source": None,
+                "is_valid": False,
+                "expires_at": None,
+                "hours_remaining": None,
+            }
+
+        # Determine source
+        env_token = os.getenv("STOCKBIT_TOKEN")
+        source = "environment" if env_token and env_token == self._token else "file"
+
+        expiry = self.get_token_expiry()
+        is_valid = expiry is None or expiry > datetime.now()
+        hours_remaining = None
+        if expiry:
+            hours_remaining = (expiry - datetime.now()).total_seconds() / 3600
+
+        return {
+            "has_token": True,
+            "source": source,
+            "is_valid": is_valid,
+            "expires_at": expiry,
+            "hours_remaining": hours_remaining,
+        }
 
     @property
     def token(self) -> str | None:
@@ -133,7 +251,9 @@ class StockbitClient:
                 return 0.0
         return 0.0
 
-    def _parse_broker_transaction(self, data: dict[str, Any], is_buyer: bool = True) -> BrokerTransaction:
+    def _parse_broker_transaction(
+        self, data: dict[str, Any], is_buyer: bool = True
+    ) -> BrokerTransaction:
         """Parse broker transaction data."""
         broker_code = data.get("netbs_broker_code", "")
         raw_type = data.get("type")
@@ -174,12 +294,12 @@ class StockbitClient:
     ) -> BrokerSummary | None:
         """
         Fetch broker summary for a ticker.
-        
+
         Args:
             ticker: Stock ticker (e.g., "BBCA")
             start_date: Start date (YYYY-MM-DD), defaults to today
             end_date: End date (YYYY-MM-DD), defaults to today
-            
+
         Returns:
             BrokerSummary object or None if failed
         """
@@ -265,15 +385,11 @@ class StockbitClient:
             # Calculate foreign flow
             foreign_net_buy = sum(
                 b.net_value for b in top_buyers if b.broker_type == BrokerType.ASING
-            ) - sum(
-                b.net_value for b in top_sellers if b.broker_type == BrokerType.ASING
-            )
+            ) - sum(b.net_value for b in top_sellers if b.broker_type == BrokerType.ASING)
 
             foreign_net_lot = sum(
                 b.net_lot for b in top_buyers if b.broker_type == BrokerType.ASING
-            ) - sum(
-                abs(b.net_lot) for b in top_sellers if b.broker_type == BrokerType.ASING
-            )
+            ) - sum(abs(b.net_lot) for b in top_sellers if b.broker_type == BrokerType.ASING)
 
             # Calculate totals
             total_buy = sum(b.buy_value for b in top_buyers)
@@ -305,12 +421,12 @@ class StockbitClient:
     ) -> list[BrokerSummary]:
         """
         Fetch broker summaries for multiple tickers.
-        
+
         Args:
             tickers: List of stock tickers
             start_date: Start date
             end_date: End date
-            
+
         Returns:
             List of BrokerSummary objects
         """
@@ -329,12 +445,13 @@ class StockbitClient:
     async def _delay(self, seconds: float) -> None:
         """Async delay for rate limiting."""
         import asyncio
+
         await asyncio.sleep(seconds)
 
     async def authenticate_playwright(self) -> bool:
         """
         Authenticate using Playwright browser automation.
-        
+
         Returns:
             True if authentication successful
         """
@@ -343,6 +460,102 @@ class StockbitClient:
         except ImportError:
             log.error("Playwright not installed. Run: pip install playwright && playwright install")
             return False
+
+        username = settings.stockbit.username or os.getenv("STOCKBIT_USERNAME")
+        password = settings.stockbit.password or os.getenv("STOCKBIT_PASSWORD")
+
+        if not username or not password:
+            log.error("Stockbit credentials not found. Set STOCKBIT_USERNAME and STOCKBIT_PASSWORD")
+            return False
+
+        max_retries = 2
+
+        for attempt in range(max_retries):
+            use_cookies = (attempt == 0) and self.auth_state_file.exists()
+            log.info(f"Attempt {attempt + 1}/{max_retries} (Using cookies: {use_cookies})")
+
+            found_token = None
+
+            async with async_playwright() as p:
+                log.info("Launching browser...")
+                browser = await p.chromium.launch(headless=settings.stockbit.headless)
+
+                # Load existing session if available
+                if use_cookies:
+                    log.info("Loading previous session cookies...")
+                    context = await browser.new_context(storage_state=str(self.auth_state_file))
+                else:
+                    log.info("Starting fresh session...")
+                    context = await browser.new_context()
+
+                page = await context.new_page()
+
+                # Listen to network requests to catch the API token
+                async def handle_request(request):
+                    nonlocal found_token
+                    if found_token:
+                        return
+
+                    headers = request.headers
+                    if "authorization" in headers:
+                        auth = headers["authorization"]
+                        if auth.startswith("Bearer "):
+                            log.info(f"Token found in request to: {request.url}")
+                            found_token = auth.split(" ")[1]
+
+                page.on("request", handle_request)
+
+                try:
+                    log.info("Navigating to Stockbit login...")
+                    await page.goto("https://stockbit.com/login", timeout=60000)
+
+                    # Check login status
+                    log.info(f"Checking login status... (URL: {page.url})")
+                    try:
+                        await page.wait_for_selector("#username", state="visible", timeout=20000)
+                        is_login_page = True
+                    except Exception:
+                        log.info("Login input not found - may be already logged in")
+                        is_login_page = False
+
+                    if is_login_page:
+                        log.info("Login page detected. Entering credentials...")
+                        await page.fill("#username", username)
+                        await page.fill("#password", password)
+                        await page.click("#email-login-button")
+                        log.info("Clicked login button...")
+                        await page.wait_for_timeout(3000)
+                    else:
+                        log.info("Already logged in via cookies. Navigating to home...")
+                        await page.goto("https://stockbit.com/")
+
+                    # Wait for token
+                    log.info("Waiting for token capture...")
+                    start_time = time.time()
+                    while not found_token and time.time() - start_time < 30:
+                        await page.wait_for_timeout(1000)
+
+                    if found_token:
+                        log.info("Token capture success!")
+                        self._save_token(found_token)
+
+                        # Save cookies & auth state
+                        self.auth_state_file.parent.mkdir(parents=True, exist_ok=True)
+                        await context.storage_state(path=str(self.auth_state_file))
+                        log.info(f"Session saved to {self.auth_state_file}")
+
+                        await browser.close()
+                        return True
+                    else:
+                        log.warning("Failed to capture token within 30 seconds")
+
+                except Exception as e:
+                    log.error(f"Error during authentication: {e}")
+
+                await browser.close()
+
+        log.error("All authentication attempts failed")
+        return False
 
         username = settings.stockbit.username or os.getenv("STOCKBIT_USERNAME")
         password = settings.stockbit.password or os.getenv("STOCKBIT_PASSWORD")
@@ -387,18 +600,32 @@ class StockbitClient:
             try:
                 # Check if we need to login
                 try:
-                    await page.wait_for_selector('input[name="username"]', state='visible', timeout=5000)
+                    await page.wait_for_selector(
+                        'input[name="username"]', state="visible", timeout=5000
+                    )
                     log.info("Entering credentials...")
                     await page.fill('input[name="username"]', username)
                     await page.fill('input[name="password"]', password)
                     await page.click('button[type="submit"]')
+                    await page.wait_for_timeout(3000)
                 except Exception:
                     log.info("Already logged in via cookies")
+
+                # Navigate to a page that triggers API calls with token
+                log.info("Navigating to broker summary page to capture token...")
+                await page.goto("https://stockbit.com/symbol/BBCA/broker-summary")
+                await page.wait_for_timeout(3000)
+
+                # Also try market detector page
+                if not found_token:
+                    log.info("Trying market detector page...")
+                    await page.goto("https://stockbit.com/symbol/BBCA")
+                    await page.wait_for_timeout(3000)
 
                 # Wait for token
                 log.info("Waiting for token capture...")
                 start_time = time.time()
-                while not found_token and time.time() - start_time < 60:
+                while not found_token and time.time() - start_time < 30:
                     await page.wait_for_timeout(1000)
 
                 if found_token:

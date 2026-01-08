@@ -214,7 +214,7 @@ You'll see the TUI interface:
 | `/sapta` | `/premarkup` | SAPTA pre-markup detection |
 | `/ihsg` | `/index`, `/market` | Market index status |
 | `/models` | `/model`, `/m` | Switch AI model |
-| `/auth` | `/login` | Stockbit authentication |
+| `/auth` | `/login` | Stockbit authentication (set token) |
 | `/clear` | `/cls` | Clear chat history |
 
 ### Command Details
@@ -394,6 +394,60 @@ BMRI       6,150      +0.65%      23,456,700
 BBNI       5,875      -0.42%      18,765,400
 ```
 
+#### `/broker <TICKER>` - Broker Flow Analysis
+
+Requires Stockbit authentication (see [Stockbit Authentication](#stockbit-authentication)).
+
+```
+/broker BBCA
+```
+
+Output:
+```
+BROKER SUMMARY - BBCA
+============================================
+
+TOP 5 BUYERS:
+   SQ: 274,337 lot | Rp 222,457,800,000
+   CC: 29,146 lot | Rp 23,690,252,500
+   BB: 15,017 lot | Rp 12,166,650,000
+
+TOP 5 SELLERS:
+   BK: 67,196 lot | Rp 54,371,875,000
+   KZ: 65,734 lot | Rp 53,276,152,500
+   ZP: 62,642 lot | Rp 50,425,677,500
+
+BANDAR DETECTOR:
+   Overall: Acc
+   Top 1: Big Acc (55%)
+   Top 5: Normal Acc (17%)
+```
+
+#### `/auth` - Stockbit Authentication
+
+Manage Stockbit token for broker flow analysis.
+
+```
+/auth                              # Check auth status
+/auth status                       # Detailed token info
+/auth set-token <JWT_TOKEN>        # Set token manually
+```
+
+Example:
+```
+/auth set-token eyJhbGciOiJSUzI1NiIs...
+```
+
+Output:
+```
+✅ Token saved successfully!
+
+Token valid for: 23.5 hours
+Saved to: data/stockbit/secrets.json
+
+You can now use /broker command.
+```
+
 ---
 
 ## SAPTA Engine
@@ -497,13 +551,75 @@ PULSE_AI__BASE_URL=http://localhost:8317/v1
 PULSE_AI__API_KEY=opencode
 PULSE_AI__DEFAULT_MODEL=gemini-3-flash-preview
 
-# Stockbit (Optional - for broker flow analysis)
-STOCKBIT_USERNAME=your_username
-STOCKBIT_PASSWORD=your_password
+# Stockbit Authentication (for broker flow analysis)
+# Option 1: Manual Token (RECOMMENDED - see "Stockbit Authentication" section)
+STOCKBIT_TOKEN=eyJhbGciOiJSUzI1NiIs...
+
+# Option 2: Username/Password (NOT recommended - CAPTCHA issues)
+# STOCKBIT_USERNAME=your_username
+# STOCKBIT_PASSWORD=your_password
 
 # Debug
 PULSE_DEBUG=false
 ```
+
+---
+
+## Stockbit Authentication
+
+Broker flow analysis (`/broker` command) requires Stockbit authentication. Due to Stockbit's strict CAPTCHA protection, **manual token extraction** is the recommended method.
+
+### Getting Your Stockbit Token
+
+1. **Open Chrome** and go to https://stockbit.com
+2. **Login** to your Stockbit account
+3. **Open DevTools** (F12 or Cmd+Option+I on Mac)
+4. Go to **Network** tab
+5. **Click any stock** (e.g., BBCA) to trigger API requests
+6. **Filter** requests by typing `exodus` in the filter box
+7. **Click** on any request to `exodus.stockbit.com`
+8. In the **Headers** tab, find `authorization: Bearer eyJhbG...`
+9. **Copy** the token (everything after "Bearer ")
+
+### Setting Your Token
+
+**Method 1: Environment Variable (Recommended)**
+
+Add to your `.env` file:
+```env
+STOCKBIT_TOKEN=eyJhbGciOiJSUzI1NiIs...your_full_token_here
+```
+
+**Method 2: CLI Command**
+
+```
+/auth set-token eyJhbGciOiJSUzI1NiIs...your_full_token_here
+```
+
+**Method 3: Direct File Edit**
+
+Edit `data/stockbit/secrets.json`:
+```json
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIs...your_full_token_here",
+  "updated_at": 1704700000
+}
+```
+
+### Token Status Commands
+
+```
+/auth              # Check authentication status
+/auth status       # Detailed token status (expiry, source)
+/auth set-token    # Show instructions for setting token
+```
+
+### Important Notes
+
+- **Token expires in ~24 hours** - you'll need to refresh it daily
+- Token is stored locally and never sent anywhere except Stockbit API
+- If you see "Unauthorized" errors, your token has expired - get a new one
+- Priority: `STOCKBIT_TOKEN` env var → `secrets.json` file
 
 ### Configuration File
 
@@ -762,11 +878,24 @@ Cause: Saham baru listing atau data historis < 100 hari
 Solution: SAPTA membutuhkan minimal 100 hari data historis
 ```
 
-**4. "Stockbit not authenticated"**
+**4. "Stockbit not authenticated" or "Unauthorized"**
 
 ```
-Cause: Belum login ke Stockbit
-Solution: Jalankan /auth dan ikuti instruksi
+Cause: Token tidak ada atau sudah expired (token valid ~24 jam)
+Solution: 
+  1. Dapatkan token baru dari browser (lihat "Stockbit Authentication" section)
+  2. Set token dengan: /auth set-token <TOKEN>
+  3. Atau tambahkan ke .env: STOCKBIT_TOKEN=<TOKEN>
+```
+
+**5. "Token is expired"**
+
+```
+Cause: Stockbit token hanya valid ~24 jam
+Solution:
+  1. Login ulang ke stockbit.com di browser
+  2. Copy token baru dari DevTools > Network > Authorization header
+  3. Update dengan /auth set-token atau edit .env
 ```
 
 ### Debug Mode
