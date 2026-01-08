@@ -14,21 +14,24 @@ from pydantic import BaseModel, Field
 
 class SaptaStatus(str, Enum):
     """SAPTA decision status."""
-    PRE_MARKUP = "PRE-MARKUP"   # >= threshold_high: Ready to breakout
-    SIAP = "SIAP"               # >= threshold_mid: Almost ready
-    WATCHLIST = "WATCHLIST"     # >= threshold_low: Monitor
-    ABAIKAN = "ABAIKAN"         # < threshold_low: Skip
+
+    PRE_MARKUP = "PRE-MARKUP"  # >= threshold_high: Ready to breakout
+    SIAP = "SIAP"  # >= threshold_mid: Almost ready
+    WATCHLIST = "WATCHLIST"  # >= threshold_low: Monitor
+    ABAIKAN = "ABAIKAN"  # < threshold_low: Skip
 
 
 class ConfidenceLevel(str, Enum):
     """Confidence level based on score and ML prediction."""
-    HIGH = "HIGH"       # High probability of success
-    MEDIUM = "MEDIUM"   # Moderate probability
-    LOW = "LOW"         # Low probability, more risk
+
+    HIGH = "HIGH"  # High probability of success
+    MEDIUM = "MEDIUM"  # Moderate probability
+    LOW = "LOW"  # Low probability, more risk
 
 
 class WavePhase(str, Enum):
     """Elliott Wave phase."""
+
     WAVE_1 = "wave1"
     WAVE_2 = "wave2"
     WAVE_3 = "wave3"
@@ -43,11 +46,12 @@ class WavePhase(str, Enum):
 @dataclass
 class ModuleScore:
     """Score from a single SAPTA module."""
+
     module_name: str
-    score: float                 # Actual score
-    max_score: float             # Maximum possible score
-    status: bool                 # True if condition met
-    details: str                 # Human-readable explanation
+    score: float  # Actual score
+    max_score: float  # Maximum possible score
+    status: bool  # True if condition met
+    details: str  # Human-readable explanation
     signals: list[str] = field(default_factory=list)
     raw_features: dict[str, Any] = field(default_factory=dict)  # For ML
 
@@ -62,6 +66,7 @@ class ModuleScore:
 @dataclass
 class ModuleFeatures:
     """Raw features extracted by a module (for ML training)."""
+
     module_name: str
     features: dict[str, float]
     timestamp: datetime = field(default_factory=datetime.now)
@@ -82,6 +87,7 @@ class SaptaConfig(BaseModel):
     weight_elliott: float = 1.0
     weight_time_projection: float = 1.0
     weight_anti_distribution: float = 1.0
+    weight_broker_flow: float = 1.0  # Module 7: Broker Flow
 
     # Module max scores
     max_absorption: float = 20.0
@@ -90,18 +96,19 @@ class SaptaConfig(BaseModel):
     max_elliott: float = 20.0
     max_time_projection: float = 15.0
     max_anti_distribution: float = 15.0
+    max_broker_flow: float = 15.0  # Module 7: Broker Flow
 
     # Target for ML labeling
-    target_gain_pct: float = 10.0       # 10% gain
-    target_days: int = 20               # within 20 trading days
+    target_gain_pct: float = 10.0  # 10% gain
+    target_days: int = 20  # within 20 trading days
 
     # Fibonacci time windows
     fib_time_windows: list[int] = Field(default=[21, 34, 55, 89, 144])
-    fib_time_tolerance: int = 3         # days
+    fib_time_tolerance: int = 3  # days
 
     # False breakout filter
-    false_break_candles: int = 3        # min candles to confirm breakout
-    false_break_penalty: float = 10.0   # score penalty
+    false_break_candles: int = 3  # min candles to confirm breakout
+    false_break_penalty: float = 10.0  # score penalty
 
     # Minimum data requirements
     min_history_days: int = 120
@@ -110,17 +117,19 @@ class SaptaConfig(BaseModel):
     def max_total_score(self) -> float:
         """Maximum possible total score."""
         return (
-            self.max_absorption +
-            self.max_compression +
-            self.max_bb_squeeze +
-            self.max_elliott +
-            self.max_time_projection +
-            self.max_anti_distribution
+            self.max_absorption
+            + self.max_compression
+            + self.max_bb_squeeze
+            + self.max_elliott
+            + self.max_time_projection
+            + self.max_anti_distribution
+            + self.max_broker_flow
         )
 
 
 class SaptaResult(BaseModel):
     """Complete SAPTA analysis result."""
+
     ticker: str
     timeframe: str = "D"
     analyzed_at: datetime = Field(default_factory=datetime.now)
@@ -137,6 +146,7 @@ class SaptaResult(BaseModel):
     elliott: dict[str, Any] | None = None
     time_projection: dict[str, Any] | None = None
     anti_distribution: dict[str, Any] | None = None
+    broker_flow: dict[str, Any] | None = None  # Module 7: Broker Flow
 
     # Decision
     status: SaptaStatus = SaptaStatus.ABAIKAN
@@ -193,6 +203,7 @@ class SaptaResult(BaseModel):
 @dataclass
 class BacktestTrade:
     """Single trade in backtest."""
+
     ticker: str
     entry_date: date
     entry_price: float
@@ -210,6 +221,7 @@ class BacktestTrade:
 @dataclass
 class BacktestResult:
     """Backtest results."""
+
     start_date: date
     end_date: date
     initial_capital: float
@@ -240,6 +252,7 @@ class BacktestResult:
 @dataclass
 class MLModelInfo:
     """Information about trained ML model."""
+
     model_version: str
     trained_at: datetime
     training_samples: int

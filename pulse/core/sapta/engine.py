@@ -21,6 +21,7 @@ from pulse.core.sapta.models import (
 from pulse.core.sapta.modules import (
     AntiDistributionModule,
     BBSqueezeModule,
+    BrokerFlowModule,
     CompressionModule,
     ElliottModule,
     SupplyAbsorptionModule,
@@ -34,7 +35,7 @@ log = get_logger(__name__)
 class SaptaEngine:
     """
     SAPTA Decision Engine.
-    
+
     Orchestrates 6 analysis modules to detect PRE-MARKUP phase:
     1. Supply Absorption - Detects smart money accumulation
     2. Compression - Volatility contraction before expansion
@@ -42,14 +43,14 @@ class SaptaEngine:
     4. Elliott Wave - Wave position and Fibonacci retracement
     5. Time Projection - Fibonacci time windows + planetary aspects
     6. Anti-Distribution - Filters out distribution patterns
-    
+
     Output: Score 0-100 with status (PRE-MARKUP, SIAP, WATCHLIST, ABAIKAN)
     """
 
     def __init__(self, config: SaptaConfig | None = None, auto_load_model: bool = True):
         """
         Initialize SAPTA Engine.
-        
+
         Args:
             config: Optional configuration (uses defaults if not provided)
             auto_load_model: Whether to auto-load trained model if available
@@ -57,7 +58,7 @@ class SaptaEngine:
         self.config = config or SaptaConfig()
         self.fetcher = YFinanceFetcher()
 
-        # Initialize all modules
+        # Initialize all modules (7 modules including broker flow)
         self.modules = {
             "absorption": SupplyAbsorptionModule(),
             "compression": CompressionModule(),
@@ -65,6 +66,7 @@ class SaptaEngine:
             "elliott": ElliottModule(),
             "time_projection": TimeProjectionModule(),
             "anti_distribution": AntiDistributionModule(),
+            "broker_flow": BrokerFlowModule(days=10),  # Module 7: Broker Flow
         }
 
         # Module weights (from config, can be learned by ML)
@@ -75,7 +77,11 @@ class SaptaEngine:
             "elliott": self.config.weight_elliott,
             "time_projection": self.config.weight_time_projection,
             "anti_distribution": self.config.weight_anti_distribution,
+            "broker_flow": getattr(self.config, "weight_broker_flow", 1.0),  # Default weight 1.0
         }
+
+        # Flag to enable/disable broker flow (requires Stockbit token)
+        self._broker_flow_enabled = True
 
         # ML model (will be loaded if available)
         self._ml_model = None
@@ -93,12 +99,12 @@ class SaptaEngine:
     ) -> SaptaResult | None:
         """
         Analyze a stock for PRE-MARKUP signals.
-        
+
         Args:
             ticker: Stock ticker (e.g., "BBCA")
             timeframe: Timeframe for analysis (default: "D" for daily)
             df: Optional pre-fetched DataFrame (for batch processing)
-            
+
         Returns:
             SaptaResult with scores, status, and explainability
         """
@@ -110,11 +116,13 @@ class SaptaEngine:
                 df = self.fetcher.get_history_df(ticker, period="1y")
 
             if df is None or len(df) < self.config.min_history_days:
-                log.warning(f"Insufficient data for {ticker}: need {self.config.min_history_days} days")
+                log.warning(
+                    f"Insufficient data for {ticker}: need {self.config.min_history_days} days"
+                )
                 return None
 
             # Run all modules
-            module_scores = await self._run_modules(df)
+            module_scores = await self._run_modules(df, ticker)
 
             # Aggregate scores
             result = self._aggregate_scores(ticker, timeframe, module_scores, df)
@@ -141,13 +149,13 @@ class SaptaEngine:
     ) -> list[SaptaResult]:
         """
         Scan multiple stocks and filter by minimum status.
-        
+
         Args:
             tickers: List of stock tickers to scan
             min_status: Minimum status to include in results
             batch_fetch: Pre-fetch data in batches for speed
             progress_callback: Optional callback(current, total) for progress
-            
+
         Returns:
             List of SaptaResult for stocks meeting criteria
         """
@@ -165,11 +173,10 @@ class SaptaEngine:
         if batch_fetch and len(tickers) > 10:
             try:
                 from pulse.core.sapta.ml.data_loader import SaptaDataLoader
+
                 loader = SaptaDataLoader()
                 data_cache = loader.get_multiple_stocks(
-                    tickers,
-                    period="1y",
-                    min_rows=self.config.min_history_days
+                    tickers, period="1y", min_rows=self.config.min_history_days
                 )
                 log.info(f"Pre-fetched {len(data_cache)} stocks for scanning")
             except Exception as e:
@@ -200,13 +207,31 @@ class SaptaEngine:
 
         return results
 
-    async def _run_modules(self, df: pd.DataFrame) -> dict[str, ModuleScore]:
+    async def _run_modules(self, df: pd.DataFrame, ticker: str = "") -> dict[str, ModuleScore]:
         """Run all analysis modules on the data."""
         scores = {}
 
         for name, module in self.modules.items():
             try:
-                score = module.analyze(df)
+                # Special handling for broker_flow module (requires async + ticker)
+                if name == "broker_flow":
+                    if self._broker_flow_enabled and ticker:
+                        score = await module.analyze_async(ticker)
+                    else:
+                        # Skip broker flow if disabled or no ticker
+                        score = ModuleScore(
+                            module_name=name,
+                            score=0.0,
+                            max_score=module.max_score,
+                            status=False,
+                            details="Broker flow disabled or no ticker",
+                            signals=[],
+                            raw_features={"broker_flow_available": False},
+                        )
+                else:
+                    # Standard sync modules
+                    score = module.analyze(df)
+
                 scores[name] = score
             except Exception as e:
                 log.debug(f"Module {name} failed: {e}")
@@ -281,7 +306,11 @@ class SaptaEngine:
             projected_window = time_score.raw_features.get("projected_window")
             days_since_low = time_score.raw_features.get("days_since_significant_low", 0)
             nearest_fib = time_score.raw_features.get("nearest_fib")
-            if nearest_fib is not None and days_since_low is not None and nearest_fib > days_since_low:
+            if (
+                nearest_fib is not None
+                and days_since_low is not None
+                and nearest_fib > days_since_low
+            ):
                 days_to_window = int(nearest_fib) - int(days_since_low)
 
         # Check for false breakout penalty
@@ -343,24 +372,39 @@ class SaptaEngine:
         if final >= self.config.threshold_pre_markup:
             result.status = SaptaStatus.PRE_MARKUP
             result.confidence = ConfidenceLevel.HIGH
-            result.reasons.append(f"Score {final:.1f} >= {self.config.threshold_pre_markup} (PRE-MARKUP threshold)")
+            result.reasons.append(
+                f"Score {final:.1f} >= {self.config.threshold_pre_markup} (PRE-MARKUP threshold)"
+            )
         elif final >= self.config.threshold_siap:
             result.status = SaptaStatus.SIAP
             result.confidence = ConfidenceLevel.MEDIUM
-            result.reasons.append(f"Score {final:.1f} >= {self.config.threshold_siap} (SIAP threshold)")
+            result.reasons.append(
+                f"Score {final:.1f} >= {self.config.threshold_siap} (SIAP threshold)"
+            )
         elif final >= self.config.threshold_watchlist:
             result.status = SaptaStatus.WATCHLIST
             result.confidence = ConfidenceLevel.LOW
-            result.reasons.append(f"Score {final:.1f} >= {self.config.threshold_watchlist} (WATCHLIST threshold)")
+            result.reasons.append(
+                f"Score {final:.1f} >= {self.config.threshold_watchlist} (WATCHLIST threshold)"
+            )
         else:
             result.status = SaptaStatus.ABAIKAN
             result.confidence = ConfidenceLevel.LOW
-            result.reasons.append(f"Score {final:.1f} < {self.config.threshold_watchlist} (below threshold)")
+            result.reasons.append(
+                f"Score {final:.1f} < {self.config.threshold_watchlist} (below threshold)"
+            )
 
         # Boost confidence if multiple modules agree
         active_modules = sum(
-            1 for m in [result.absorption, result.compression, result.bb_squeeze,
-                       result.elliott, result.time_projection, result.anti_distribution]
+            1
+            for m in [
+                result.absorption,
+                result.compression,
+                result.bb_squeeze,
+                result.elliott,
+                result.time_projection,
+                result.anti_distribution,
+            ]
             if m and m.get("status", False)
         )
 
@@ -429,8 +473,10 @@ class SaptaEngine:
                 self.config.threshold_siap = thresholds.get("siap", 65.0)
                 self.config.threshold_watchlist = thresholds.get("watchlist", 50.0)
 
-                log.info(f"Loaded learned thresholds: PRE-MARKUP>={self.config.threshold_pre_markup:.1f}, "
-                        f"SIAP>={self.config.threshold_siap:.1f}, WATCHLIST>={self.config.threshold_watchlist:.1f}")
+                log.info(
+                    f"Loaded learned thresholds: PRE-MARKUP>={self.config.threshold_pre_markup:.1f}, "
+                    f"SIAP>={self.config.threshold_siap:.1f}, WATCHLIST>={self.config.threshold_watchlist:.1f}"
+                )
             except Exception as e:
                 log.debug(f"Could not load thresholds: {e}")
 
@@ -438,6 +484,7 @@ class SaptaEngine:
         """Load trained ML model from disk."""
         try:
             import joblib
+
             self._ml_model = joblib.load(model_path)
             self._ml_loaded = True
             log.info(f"Loaded ML model from {model_path}")
@@ -453,11 +500,11 @@ class SaptaEngine:
     ) -> str:
         """
         Format SaptaResult for display.
-        
+
         Args:
             result: SAPTA analysis result
             detailed: Whether to show detailed module breakdown
-            
+
         Returns:
             Formatted string for terminal display
         """
@@ -484,7 +531,9 @@ class SaptaEngine:
         # Main result
         lines.append(f"Status: {status_icons.get(result.status, result.status.value)}")
         lines.append(f"Score: {result.final_score:.1f}/100")
-        lines.append(f"Confidence: {confidence_icons.get(result.confidence, result.confidence.value)}")
+        lines.append(
+            f"Confidence: {confidence_icons.get(result.confidence, result.confidence.value)}"
+        )
 
         if result.ml_probability is not None:
             lines.append(f"ML Probability: {result.ml_probability:.1%}")
