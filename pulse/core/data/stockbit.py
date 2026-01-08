@@ -442,6 +442,104 @@ class StockbitClient:
 
         return results
 
+    async def fetch_historical(
+        self,
+        ticker: str,
+        days: int = 10,
+        end_date: str | None = None,
+    ) -> list[BrokerSummary]:
+        """
+        Fetch broker summaries for multiple days (historical).
+
+        Args:
+            ticker: Stock ticker (e.g., "BBCA")
+            days: Number of days to fetch (default 10)
+            end_date: End date (YYYY-MM-DD), defaults to today
+
+        Returns:
+            List of BrokerSummary objects, sorted by date (oldest first)
+        """
+        from datetime import timedelta
+
+        if not self.is_authenticated:
+            log.error("Not authenticated. Run authentication first.")
+            return []
+
+        ticker = ticker.upper().strip()
+
+        # Calculate dates
+        if end_date:
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        else:
+            end_dt = datetime.now()
+
+        results = []
+        trading_days_found = 0
+        days_checked = 0
+        max_days_to_check = days * 2  # Account for weekends/holidays
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            while trading_days_found < days and days_checked < max_days_to_check:
+                check_date = end_dt - timedelta(days=days_checked)
+                date_str = check_date.strftime("%Y-%m-%d")
+
+                # Skip weekends
+                if check_date.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                    days_checked += 1
+                    continue
+
+                url = f"{self.base_url}/marketdetectors/{ticker}"
+                params = {
+                    "start_date": date_str,
+                    "end_date": date_str,
+                    "transaction_type": "TRANSACTION_TYPE_NET",
+                    "market_board": "MARKET_BOARD_REGULER",
+                    "investor_type": "INVESTOR_TYPE_ALL",
+                    "limit": 100,
+                }
+
+                try:
+                    response = await client.get(
+                        url,
+                        headers=self._get_headers(),
+                        params=params,
+                    )
+
+                    if response.status_code == 401:
+                        log.error("Token expired!")
+                        break
+
+                    if response.status_code == 200:
+                        data = response.json()
+                        summary = self._parse_broker_summary_with_date(ticker, data, check_date)
+
+                        if summary and summary.top_buyers:  # Has data
+                            results.append(summary)
+                            trading_days_found += 1
+
+                    # Rate limiting
+                    await self._delay(0.3)
+
+                except Exception as e:
+                    log.warning(f"Error fetching {ticker} for {date_str}: {e}")
+
+                days_checked += 1
+
+        # Sort by date (oldest first)
+        results.sort(key=lambda x: x.date)
+
+        log.info(f"Fetched {len(results)} days of broker data for {ticker}")
+        return results
+
+    def _parse_broker_summary_with_date(
+        self, ticker: str, data: dict[str, Any], date: datetime
+    ) -> BrokerSummary | None:
+        """Parse broker summary with specific date."""
+        summary = self._parse_broker_summary(ticker, data)
+        if summary:
+            summary.date = date
+        return summary
+
     async def _delay(self, seconds: float) -> None:
         """Async delay for rate limiting."""
         import asyncio

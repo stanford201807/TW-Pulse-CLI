@@ -217,6 +217,14 @@ class CommandRegistry:
             aliases=["premarkup", "markup"],
         )
 
+        self.register(
+            "bandar",
+            self._cmd_bandar,
+            "Bandarmology analysis (multi-day broker flow)",
+            "/bandar <TICKER> [days] | /bandar scan [universe]",
+            aliases=["bandarmology", "bm"],
+        )
+
     async def _cmd_help(self, args: str) -> str:
         """Help command handler."""
         if args:
@@ -953,3 +961,104 @@ Modules:
             return f"Could not analyze {ticker}. Make sure the ticker is valid."
 
         return engine.format_result(result, detailed=detailed)
+
+    async def _cmd_bandar(self, args: str) -> str:
+        """Bandarmology analysis command handler."""
+        if not args:
+            return """BANDARMOLOGY - Advanced Broker Flow Analysis
+
+Usage:
+  /bandar <TICKER>              - Analyze single stock (default 10 days)
+  /bandar <TICKER> <days>       - Analyze with custom period
+  /bandar scan [universe]       - Scan for markup-ready candidates
+
+Period Options:
+  /bandar BBCA                  - Last 10 trading days
+  /bandar BBCA 5                - Last 5 trading days
+  /bandar BBCA 20               - Last 20 trading days (1 month)
+
+Scan Options:
+  /bandar scan                  - Scan LQ45 (default)
+  /bandar scan lq45             - Scan LQ45 (45 stocks)
+  /bandar scan idx80            - Scan IDX80 (80 stocks)
+  /bandar scan popular          - Scan popular stocks
+
+Options:
+  --detailed                    - Show daily timeline
+
+Examples:
+  /bandar BBCA                  - Analyze BBCA (10 days)
+  /bandar BBRI 20               - Analyze BBRI (20 days / ~1 month)
+  /bandar ANTM --detailed       - Detailed with daily breakdown
+  /bandar scan lq45             - Scan LQ45 for markup candidates
+
+Analysis Includes:
+  - Flow Momentum Score (0-100)
+  - Markup Readiness Score (0-100)
+  - Accumulation Phase Detection
+  - Smart Money vs Retail Flow
+  - Broker Composition by Profile
+  - Pattern Detection (Crossing, Dominasi, Retail Trap, etc.)
+  - Top Broker Consistency Tracking
+  - Daily Timeline (with --detailed)
+
+Broker Profiles:
+  - Smart Money Foreign: AK, BK, MS, GR, LG, KZ, CS, DX
+  - Bandar/Gorengan: SQ, MG, EP, DR, BZ
+  - Retail: XA, AZ, KI, YO, ZP
+  - Local Institutional: CC, NI, OD, TP, IF
+"""
+
+        from pulse.core.analysis.bandarmology import BandarmologyEngine
+        from pulse.core.screener import StockScreener, StockUniverse
+
+        engine = BandarmologyEngine()
+        args_lower = args.lower().strip()
+        detailed = "--detailed" in args_lower
+        args_clean = args_lower.replace("--detailed", "").strip()
+
+        # Check if it's a scan command
+        if args_clean.startswith("scan"):
+            parts = args_clean.split()
+            universe = parts[1] if len(parts) > 1 else "lq45"
+
+            # Select universe
+            universe_map = {
+                "lq45": StockUniverse.LQ45,
+                "idx80": StockUniverse.IDX80,
+                "popular": StockUniverse.POPULAR,
+            }
+            universe_type = universe_map.get(universe, StockUniverse.LQ45)
+            screener = StockScreener(universe_type=universe_type)
+            tickers = screener.universe
+            universe_name = universe.upper()
+
+            # Scan for markup-ready candidates
+            results = await engine.scan_markup_ready(tickers, min_score=60, days=10)
+
+            if not results:
+                return f"No markup-ready stocks found in {universe_name}."
+
+            return engine.format_scan_results(
+                results, title=f"Bandarmology Scan: {universe_name} ({len(results)} found)"
+            )
+
+        # Single stock analysis
+        parts = args_clean.split()
+        ticker = parts[0].upper()
+
+        # Parse optional days parameter
+        days = 10  # Default
+        if len(parts) > 1:
+            try:
+                days = int(parts[1])
+                days = min(max(days, 3), 60)  # Clamp between 3-60 days
+            except ValueError:
+                pass  # Keep default
+
+        result = await engine.analyze(ticker, days=days)
+
+        if not result:
+            return f"Could not analyze {ticker}. Make sure the ticker is valid and you have a valid Stockbit token."
+
+        return engine.format_report(result, detailed=detailed)

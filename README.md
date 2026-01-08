@@ -204,7 +204,8 @@ You'll see the TUI interface:
 | `/analyze` | `/a`, `/stock` | Complete stock analysis |
 | `/technical` | `/ta`, `/tech` | Technical analysis only |
 | `/fundamental` | `/fa`, `/fund` | Fundamental analysis only |
-| `/broker` | `/b`, `/flow` | Broker flow analysis |
+| `/broker` | `/b`, `/flow` | Broker flow analysis (single day) |
+| `/bandar` | `/bm`, `/bandarmology` | **Bandarmology analysis (multi-day)** |
 | `/chart` | `/c`, `/grafik` | Generate price chart |
 | `/forecast` | `/fc`, `/prediksi` | Price prediction |
 | `/screen` | `/s`, `/filter` | Stock screening |
@@ -447,6 +448,117 @@ Saved to: data/stockbit/secrets.json
 
 You can now use /broker command.
 ```
+
+---
+
+## Bandarmology Analysis
+
+### Overview
+
+**Bandarmology** adalah analisis mendalam tentang aktivitas broker (bandar) dalam trading saham. Fitur ini menganalisis data broker summary selama beberapa hari untuk mendeteksi pola akumulasi/distribusi dan kesiapan markup.
+
+### Features
+
+- **Multi-day Analysis** - Analisis 5-60 hari trading
+- **Broker Profiling** - Klasifikasi broker berdasarkan karakteristik
+- **Accumulation Phase Detection** - Deteksi fase akumulasi dari early hingga markup-ready
+- **Pattern Recognition** - Deteksi pola seperti Crossing, Dominasi, Retail Trap
+- **Flow Momentum Score** - Skor 0-100 untuk kekuatan flow
+- **Markup Readiness Score** - Skor kesiapan markup
+
+### Broker Profiles
+
+| Profile | Brokers | Karakteristik |
+|---------|---------|---------------|
+| **Smart Money Foreign** | AK, BK, MS, GR, LG, KZ, CS, DX | Institusi asing, directional, high conviction |
+| **Bandar/Gorengan** | SQ, MG, EP, DR, BZ | Sering terlibat pump & dump, hati-hati |
+| **Retail** | XA, AZ, KI, YO, ZP | Platform retail, sering late, contrarian signal |
+| **Local Institutional** | CC, NI, OD, TP, IF | Dana kelolaan lokal, lebih informed |
+| **Market Maker** | YU, RX, PD | Sering di kedua sisi, lihat net position |
+
+### Usage
+
+**Single Stock Analysis:**
+
+```
+/bandar BBCA              # Analisis 10 hari (default)
+/bandar BBRI 5            # Analisis 5 hari
+/bandar ANTM 20           # Analisis 20 hari (~1 bulan)
+/bandar TLKM --detailed   # Dengan daily timeline
+```
+
+**Scan for Markup Candidates:**
+
+```
+/bandar scan              # Scan LQ45
+/bandar scan lq45         # Scan LQ45 (45 stocks)
+/bandar scan idx80        # Scan IDX80 (80 stocks)
+/bandar scan popular      # Scan popular stocks
+```
+
+### Example Output
+
+```
+=================================================================
+BANDARMOLOGY REPORT: BBCA
+Period: 10 days (2025-12-29 to 2026-01-08)
+=================================================================
+
+FLOW MOMENTUM: 78/100 [Buy] 🟢
+MARKUP READINESS: 72/100
+PHASE: Late Accumulation 📈
+CONFIDENCE: 85%
+
+-----------------------------------------------------------------
+FLOW SUMMARY
+-----------------------------------------------------------------
+  Foreign Net     : +Rp 245.5B
+  Smart Money Net : +Rp 180.2B
+  Retail Net      : -Rp 45.3B
+  Akumulasi Streak: 8 hari
+
+-----------------------------------------------------------------
+BROKER COMPOSITION
+-----------------------------------------------------------------
+  Smart Money :  45.0% ████████████░░░░░░░░
+  Bandar      :  18.0% ███████░░░░░░░░░░░░░
+  Retail      :  12.0% █████░░░░░░░░░░░░░░░
+  Local Inst  :  25.0% ██████████░░░░░░░░░░
+
+-----------------------------------------------------------------
+PATTERN ALERTS
+-----------------------------------------------------------------
+  [+] HIGH Smart money akumulasi: AK, BK, MS NET BUY
+  [+] Contrarian bullish: Retail jual, smart money beli
+  [+] DOMINASI SQ menguasai 28% volume
+  [+] HIGH MARKUP SIGNAL (4/4): 8 hari akumulasi, smart money NET BUY
+
+-----------------------------------------------------------------
+RECOMMENDATION
+-----------------------------------------------------------------
+  STRONG BUY - Akumulasi kuat, tunggu konfirmasi breakout.
+```
+
+### Accumulation Phases
+
+| Phase | Description |
+|-------|-------------|
+| **Early Accumulation** | 2-3 hari konsisten beli |
+| **Mid Accumulation** | 4-6 hari, volume mulai naik |
+| **Late Accumulation** | 7+ hari, hampir siap markup |
+| **Markup Ready** | Semua sinyal align, siap breakout |
+| **Distribution** | Smart money mulai keluar |
+
+### Pattern Detection
+
+| Pattern | Description | Signal |
+|---------|-------------|--------|
+| **Crossing** | Broker sama di buy & sell side | Potensi distribusi terselubung |
+| **Dominasi** | 1 broker > 25% volume | Big player masuk |
+| **Retail Trap** | Retail beli, smart money jual | Bearish untuk retail |
+| **Smart Money Entry** | Multiple SM brokers akumulasi | Bullish |
+| **Markup Signal** | Semua kondisi align | Strong bullish |
+| **Broker Consistency** | Broker sama beli berhari-hari | Akumulasi kuat |
 
 ---
 
