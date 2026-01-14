@@ -122,11 +122,91 @@ class CommandRegistry:
         )
 
         self.register(
-            "bandar",
-            self._cmd_bandar,
-            "Bandarmology analysis (multi-day broker flow)",
-            "/bandar <TICKER> [days] | /bandar scan [universe]",
-            aliases=["bandarmology", "bm"],
+            "technical",
+            self._cmd_technical,
+            "Technical analysis (技術分析)",
+            "/technical <TICKER>",
+            aliases=["tech", "ta"],
+        )
+
+        self.register(
+            "fundamental",
+            self._cmd_fundamental,
+            "Fundamental analysis (基本面分析)",
+            "/fundamental <TICKER>",
+            aliases=["fund", "fa"],
+        )
+
+        self.register(
+            "institutional",
+            self._cmd_broker,
+            "Institutional investor flow (法人動向)",
+            "/institutional <TICKER>",
+            aliases=["inst", "flow", "broker"],
+        )
+
+        self.register(
+            "screen",
+            self._cmd_screen,
+            "Stock screener (股票篩選)",
+            "/screen <strategy> [universe]",
+            aliases=["scan", "filter"],
+        )
+
+        self.register(
+            "sector",
+            self._cmd_sector,
+            "Sector analysis (產業分析)",
+            "/sector [sector_name]",
+            aliases=["industry"],
+        )
+
+        self.register(
+            "compare",
+            self._cmd_compare,
+            "Compare stocks (股票比較)",
+            "/compare <TICKER1> <TICKER2> [...]",
+            aliases=["cmp", "vs"],
+        )
+
+        self.register(
+            "chart",
+            self._cmd_chart,
+            "Generate stock chart (K線圖)",
+            "/chart <TICKER> [period]",
+            aliases=["k", "kline"],
+        )
+
+        self.register(
+            "forecast",
+            self._cmd_forecast,
+            "Price forecast (價格預測)",
+            "/forecast <TICKER> [days]",
+            aliases=["pred", "predict"],
+        )
+
+        self.register(
+            "taiex",
+            self._cmd_taiex,
+            "Taiwan index overview (大盤指數)",
+            "/taiex [TPEX]",
+            aliases=["twii", "index"],
+        )
+
+        self.register(
+            "plan",
+            self._cmd_plan,
+            "Generate trading plan (交易計劃)",
+            "/plan <TICKER>",
+            aliases=["trade"],
+        )
+
+        self.register(
+            "clear",
+            self._cmd_clear,
+            "Clear chat history",
+            "/clear",
+            aliases=["cls"],
         )
 
     async def _cmd_help(self, args: str) -> str:
@@ -134,23 +214,23 @@ class CommandRegistry:
         if args:
             cmd = self.get(args.strip())
             if cmd:
-                aliases_str = ", ".join(f"/{a}" for a in cmd.aliases) if cmd.aliases else "None"
+                aliases_str = ", ".join(f"/{a}" for a in cmd.aliases) if cmd.aliases else "無"
                 return f"""/{cmd.name}
 
-Description: {cmd.description}
-Usage: {cmd.usage}
-Aliases: {aliases_str}
+說明: {cmd.description}
+用法: {cmd.usage}
+別名: {aliases_str}
 """
             else:
-                return f"Unknown command: /{args}"
+                return f"未知的命令: /{args}"
 
-        lines = ["Available Commands\n"]
+        lines = ["可用命令\n"]
 
         for cmd in self.list_commands():
             aliases = f" ({', '.join(cmd.aliases)})" if cmd.aliases else ""
             lines.append(f"  /{cmd.name}{aliases} - {cmd.description}")
 
-        lines.append("\nType /help <command> for detailed help.")
+        lines.append("\n輸入 /help <命令> 查看詳細說明")
 
         return "\n".join(lines)
 
@@ -161,7 +241,7 @@ Aliases: {aliases_str}
             self.app.ai_client.set_model(model_id)
 
             model_info = self.app.ai_client.get_current_model()
-            return f"Switched to model: {model_info['name']}"
+            return f"已切換至模型: {model_info['name']}"
 
         # No args - show modal
         self.app.show_models_modal()
@@ -170,7 +250,7 @@ Aliases: {aliases_str}
     async def _cmd_analyze(self, args: str) -> str:
         """Analyze command handler."""
         if not args:
-            return "Please specify a ticker. Usage: /analyze 2330 (台積電)"
+            return "請指定股票代碼。用法: /analyze 2330 (台積電)"
 
         ticker = args.strip().upper()
 
@@ -182,7 +262,7 @@ Aliases: {aliases_str}
         stock = await fetcher.fetch_stock(ticker)
 
         if not stock:
-            return f"Could not fetch data for {ticker}"
+            return f"無法取得 {ticker} 的資料"
 
         tech_analyzer = TechnicalAnalyzer()
         technical = await tech_analyzer.analyze(ticker)
@@ -211,7 +291,7 @@ Aliases: {aliases_str}
     async def _cmd_broker(self, args: str) -> str:
         """Broker flow command handler."""
         if not args:
-            return "Please specify a ticker. Usage: /broker 2330 (台積電)"
+            return "請指定股票代碼。用法: /institutional 2330 (台積電)"
 
         ticker = args.strip().upper()
 
@@ -222,14 +302,14 @@ Aliases: {aliases_str}
         result = await analyzer.analyze(ticker)
 
         if not result:
-            return f"Could not fetch broker data for {ticker}"
+            return f"無法取得 {ticker} 的法人動向資料"
 
         return analyzer.format_summary_table(result)
 
     async def _cmd_technical(self, args: str) -> str:
         """Technical analysis command handler."""
         if not args:
-            return "Please specify a ticker. Usage: /technical 2330 (台積電)"
+            return "請指定股票代碼。用法: /technical 2330 (台積電)"
 
         ticker = args.strip().upper()
 
@@ -239,14 +319,27 @@ Aliases: {aliases_str}
         indicators = await analyzer.analyze(ticker)
 
         if not indicators:
-            return f"Could not analyze {ticker}"
+            return f"無法分析 {ticker}，請確認股票代碼是否正確"
 
         summary = analyzer.get_indicator_summary(indicators)
 
-        lines = [f"Technical Analysis: {ticker}\n"]
+        # Translate status labels
+        status_map = {
+            "Overbought": "超買",
+            "Oversold": "超賣",
+            "Neutral": "中性",
+            "Bullish": "多頭",
+            "Bearish": "空頭",
+            "Strong": "強勢",
+            "Weak": "弱勢",
+        }
+
+        lines = [f"技術分析: {ticker}\n"]
 
         for item in summary:
-            status = f" ({item['status']})" if item.get("status") else ""
+            status_text = item.get("status", "")
+            status_zh = status_map.get(status_text, status_text)
+            status = f" ({status_zh})" if status_zh else ""
             lines.append(f"  {item['name']}: {item['value']}{status}")
 
         return "\n".join(lines)
@@ -254,7 +347,7 @@ Aliases: {aliases_str}
     async def _cmd_fundamental(self, args: str) -> str:
         """Fundamental analysis command handler."""
         if not args:
-            return "Please specify a ticker. Usage: /fundamental 2330 (台積電)"
+            return "請指定股票代碼。用法: /fundamental 2330 (台積電)"
 
         ticker = args.strip().upper()
 
@@ -264,21 +357,43 @@ Aliases: {aliases_str}
         data = await analyzer.analyze(ticker)
 
         if not data:
-            return f"Could not fetch fundamental data for {ticker}"
+            return f"無法取得 {ticker} 的基本面資料"
 
         summary = analyzer.get_summary(data)
         score_data = analyzer.score_valuation(data)
 
-        lines = [f"Fundamental Analysis: {ticker}\n"]
-        lines.append(f"Valuation Score: {score_data['score']}/100\n")
+        # Translate category and status labels
+        category_map = {
+            "Valuation": "估值指標",
+            "Profitability": "獲利能力",
+            "Growth": "成長指標",
+            "Dividend": "股利資訊",
+            "Financial Health": "財務健康",
+        }
+        status_map = {
+            "Undervalued": "低估",
+            "Overvalued": "高估",
+            "Fair": "合理",
+            "Good": "良好",
+            "Excellent": "優秀",
+            "Poor": "較差",
+            "High": "高",
+            "Low": "低",
+        }
+
+        lines = [f"基本面分析: {ticker}\n"]
+        lines.append(f"估值評分: {score_data['score']}/100\n")
 
         current_category = ""
         for item in summary:
             if item["category"] != current_category:
                 current_category = item["category"]
-                lines.append(f"\n{current_category}")
+                category_zh = category_map.get(current_category, current_category)
+                lines.append(f"\n{category_zh}")
 
-            status = f" ({item['status']})" if item.get("status") else ""
+            status_text = item.get("status", "")
+            status_zh = status_map.get(status_text, status_text)
+            status = f" ({status_zh})" if status_zh else ""
             lines.append(f"  {item['name']}: {item['value']}{status}")
 
         return "\n".join(lines)
@@ -350,7 +465,7 @@ Example (範例):
             title = f"Screening: {criteria_str} ({len(screener.universe)} stocks)"
 
         if not results:
-            return f"No stocks found matching: {criteria_str}"
+            return f"找不到符合條件的股票: {criteria_str}"
 
         return screener.format_results(results, title=title, show_details=True)
 
@@ -364,35 +479,35 @@ Example (範例):
         if not args:
             sectors = analyzer.list_sectors()
 
-            lines = ["Available Sectors\n"]
+            lines = ["可用產業類別\n"]
             for s in sectors:
-                lines.append(f"  {s['name']} ({s['stock_count']} stocks)")
+                lines.append(f"  {s['name']} ({s['stock_count']} 檔)")
 
-            lines.append("\nUse /sector <SECTOR> for sector analysis.")
+            lines.append("\n用法: /sector <產業代碼> 進行產業分析")
 
             return "\n".join(lines)
 
         sector = args.strip().upper()
 
         if sector not in TW_SECTORS:
-            return f"Unknown sector: {sector}"
+            return f"未知的產業類別: {sector}"
 
         analysis = await analyzer.analyze_sector(sector)
 
         if not analysis:
-            return f"Could not analyze sector {sector}"
+            return f"無法分析產業 {sector}"
 
-        lines = [f"Sector Analysis: {sector}\n"]
-        lines.append(f"Stocks Analyzed: {analysis.total_stocks}")
-        lines.append(f"Avg Change: {analysis.avg_change_percent:.2f}%\n")
+        lines = [f"產業分析: {sector}\n"]
+        lines.append(f"分析股票數: {analysis.total_stocks} 檔")
+        lines.append(f"平均漲跌: {analysis.avg_change_percent:.2f}%\n")
 
         if analysis.top_gainers:
-            lines.append("Top Gainers")
+            lines.append("漲幅前三")
             for g in analysis.top_gainers[:3]:
                 lines.append(f"  {g['ticker']}: +{g['change_percent']:.2f}%")
 
         if analysis.top_losers:
-            lines.append("\nTop Losers")
+            lines.append("\n跌幅前三")
             for l in analysis.top_losers[:3]:
                 lines.append(f"  {l['ticker']}: {l['change_percent']:.2f}%")
 
@@ -401,12 +516,12 @@ Example (範例):
     async def _cmd_compare(self, args: str) -> str:
         """Compare stocks command handler."""
         if not args:
-            return "Please specify tickers. Usage: /compare 2330 2454 (台積電 vs 聯發科)"
+            return "請指定股票代碼。用法: /compare 2330 2454 (台積電 vs 聯發科)"
 
         tickers = args.strip().upper().split()
 
         if len(tickers) < 2:
-            return "Please specify at least 2 tickers to compare."
+            return "請至少指定 2 檔股票進行比較"
 
         from pulse.core.data.yfinance import YFinanceFetcher
 
@@ -428,23 +543,27 @@ Example (範例):
                 )
 
         if len(results) < 2:
-            return "Could not fetch enough data for comparison."
+            return "無法取得足夠的資料進行比較"
 
-        lines = ["Stock Comparison\n"]
-        lines.append(f"{'Ticker':<8} {'Price':>12} {'Change':>10} {'Volume':>14}")
-        lines.append("-" * 48)
+        lines = ["═══ 股票比較 ═══\n"]
+        lines.append("┌────────┬──────────────┬────────────┬────────────────┐")
+        lines.append("│  代碼  │     股價     │   漲跌幅   │      成交量    │")
+        lines.append("├────────┼──────────────┼────────────┼────────────────┤")
 
         for r in results:
             change_str = f"{r['change_pct']:+.2f}%"
+            icon = "📈" if r['change_pct'] >= 0 else "📉"
             vol_str = f"{r['volume']:,.0f}"
-            lines.append(f"{r['ticker']:<8} {r['price']:>12,.0f} {change_str:>10} {vol_str:>14}")
+            lines.append(f"│ {r['ticker']:<6} │ {r['price']:>12,.0f} │ {change_str:>10} │ {vol_str:>14} │")
+
+        lines.append("└────────┴──────────────┴────────────┴────────────────┘")
 
         return "\n".join(lines)
 
     async def _cmd_chart(self, args: str) -> str:
         """Chart command handler - generate and save price chart as PNG."""
         if not args:
-            return "Please specify a ticker. Usage: /chart 2330 [1mo|3mo|6mo|1y] (台積電圖表)"
+            return "請指定股票代碼。用法: /chart 2330 [1mo|3mo|6mo|1y] (台積電圖表)"
 
         parts = args.strip().upper().split()
         ticker = parts[0]
@@ -462,7 +581,7 @@ Example (範例):
         df = fetcher.get_history_df(ticker, period)
 
         if df is None or df.empty:
-            return f"Could not fetch historical data for {ticker}"
+            return f"無法取得 {ticker} 的歷史資料"
 
         dates = df.index.strftime("%Y-%m-%d").tolist()
         prices = df["close"].tolist()
@@ -473,7 +592,7 @@ Example (範例):
         filepath = generator.price_chart(ticker, dates, prices, volumes, period)
 
         if not filepath:
-            return f"Failed to generate chart for {ticker}"
+            return f"無法產生 {ticker} 的圖表"
 
         # Get current price info
         current = prices[-1]
@@ -483,12 +602,12 @@ Example (範例):
 
         return f"""{ticker}: NT$ {current:,.2f} ({change:+,.2f}, {change_pct:+.2f}%)
 
-Chart saved: {filepath}"""
+圖表已儲存: {filepath}"""
 
     async def _cmd_forecast(self, args: str) -> str:
         """Forecast command handler - predict future prices and save chart as PNG."""
         if not args:
-            return "Please specify a ticker. Usage: /forecast 2330 [7|14|30] (台積電預測)"
+            return "請指定股票代碼。用法: /forecast 2330 [7|14|30] (台積電預測)"
 
         parts = args.strip().upper().split()
         ticker = parts[0]
@@ -510,7 +629,7 @@ Chart saved: {filepath}"""
         df = fetcher.get_history_df(ticker, "6mo")
 
         if df is None or df.empty:
-            return f"Not enough data for forecasting {ticker}"
+            return f"{ticker} 的歷史資料不足，無法預測"
 
         prices = df["close"].tolist()
         dates = df.index.strftime("%Y-%m-%d").tolist()
@@ -519,7 +638,7 @@ Chart saved: {filepath}"""
         result = await forecaster.forecast(ticker, prices, dates, days)
 
         if not result:
-            return f"Forecast failed for {ticker}"
+            return f"{ticker} 預測失敗"
 
         # Generate PNG chart
         generator = ChartGenerator()
@@ -537,19 +656,26 @@ Chart saved: {filepath}"""
         current = prices[-1]
         target = result.target_price
         change_pct = (target - current) / current * 100
-        trend_icon = "UP" if change_pct > 0 else "DOWN" if change_pct < 0 else "SIDEWAYS"
+        trend_map = {"UP": "📈 上漲", "DOWN": "📉 下跌", "SIDEWAYS": "➡️ 盤整"}
+        trend_key = "UP" if change_pct > 0 else "DOWN" if change_pct < 0 else "SIDEWAYS"
+        trend_zh = trend_map[trend_key]
+        change_color = "+" if change_pct > 0 else ""
 
-        summary = f"""Forecast: {ticker} ({days} days)
+        summary = f"""═══ 價格預測: {ticker} ({days} 天) ═══
 
-Current: NT$ {current:,.2f}
-Target: NT$ {target:,.2f} ({change_pct:+.2f}%)
-Trend: {trend_icon}
-Support: NT$ {result.support:,.2f}
-Resistance: NT$ {result.resistance:,.2f}
-Confidence: {result.confidence:.0f}%"""
+┌─────────────────────────────────┐
+│  現價      │ NT$ {current:>12,.2f}  │
+│  目標價    │ NT$ {target:>12,.2f}  │
+│  預期漲跌  │ {change_color}{change_pct:>12.2f}%  │
+├─────────────────────────────────┤
+│  趨勢      │ {trend_zh:<14}  │
+│  支撐位    │ NT$ {result.support:>12,.2f}  │
+│  壓力位    │ NT$ {result.resistance:>12,.2f}  │
+│  信心度    │ {result.confidence:>12.0f}%  │
+└─────────────────────────────────┘"""
 
         if filepath:
-            summary += f"\n\nChart saved: {filepath}"
+            summary += f"\n\n📊 圖表已儲存: {filepath}"
 
         return summary
 
@@ -565,15 +691,15 @@ Confidence: {result.confidence:.0f}%"""
 
         valid_indices = ["TAIEX", "TWII", "TPEX", "OTC", "TW50"]
         if index_name not in valid_indices:
-            return f"""Unknown index: {index_name}
+            return f"""未知的指數: {index_name}
 
-Available indices:
-  TAIEX - Taiwan Weighted Index (加權指數)
-  TPEX  - Taiwan OTC Index (櫃買指數)
-  TW50  - Taiwan 50 ETF (台灣50)
+可用指數:
+  TAIEX - 加權指數
+  TPEX  - 櫃買指數
+  TW50  - 台灣50 ETF
 
-Usage: /taiex [index]
-Example: /taiex TPEX
+用法: /taiex [指數代碼]
+範例: /taiex TPEX
 """
 
         from pulse.core.chart_generator import ChartGenerator
@@ -583,7 +709,7 @@ Example: /taiex TPEX
         index_data = await fetcher.fetch_index(index_name)
 
         if not index_data:
-            return f"Could not fetch data for {index_name}"
+            return f"無法取得 {index_name} 的資料"
 
         # Generate chart
         yf_ticker = fetcher.INDEX_MAPPING.get(index_name, ("^TWII", "TAIEX"))[0]
@@ -598,16 +724,25 @@ Example: /taiex TPEX
 
         # Format response
         change_sign = "+" if index_data.change >= 0 else ""
+        trend_icon = "📈" if index_data.change >= 0 else "📉"
 
-        result = f"""{index_data.name} ({index_name})
+        result = f"""═══ {index_data.name} ({index_name}) ═══
 
-Value: {index_data.current_price:,.2f}
-Change: {change_sign}{index_data.change:,.2f} ({change_sign}{index_data.change_percent:.2f}%)
-Range: {index_data.day_low:,.2f} - {index_data.day_high:,.2f}
-52W Range: {index_data.week_52_low:,.2f} - {index_data.week_52_high:,.2f}"""
+┌─────────────────────────────────┐
+│  指數      │ {index_data.current_price:>15,.2f}  │
+│  漲跌      │ {change_sign}{index_data.change:>14,.2f}  │
+│  漲跌幅    │ {change_sign}{index_data.change_percent:>14.2f}%  │
+├─────────────────────────────────┤
+│  今日最高  │ {index_data.day_high:>15,.2f}  │
+│  今日最低  │ {index_data.day_low:>15,.2f}  │
+│  52週最高  │ {index_data.week_52_high:>15,.2f}  │
+│  52週最低  │ {index_data.week_52_low:>15,.2f}  │
+└─────────────────────────────────┘
+
+{trend_icon} 趨勢: {"上漲" if index_data.change >= 0 else "下跌"}"""
 
         if chart_path:
-            result += f"\n\nChart saved: {chart_path}"
+            result += f"\n\n📊 圖表已儲存: {chart_path}"
 
         return result
 
