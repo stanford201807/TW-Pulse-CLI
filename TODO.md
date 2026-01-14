@@ -1,190 +1,112 @@
-# Pulse-CLI 改寫進度與待辦事項
+# Pulse-CLI 台灣股票分析工具
 
-> **最後更新**: 2026-01-14 09:15
-> **整體進度**: 100% 完成 🎉
-
----
-
-## 2026-01-14 更新摘要
-
-### 本次修復 ✅
-
-#### 1. 命令註冊修復
-- [x] 移除已刪除的 `/bandar` 命令註冊
-- [x] 新增缺失的命令註冊：
-  - `/technical` (tech, ta) - 技術分析
-  - `/fundamental` (fund, fa) - 基本面分析
-  - `/institutional` (inst, flow, broker) - 法人動向
-  - `/screen` (scan, filter) - 股票篩選
-  - `/sector` (industry) - 產業分析
-  - `/compare` (cmp, vs) - 股票比較
-  - `/chart` (k, kline) - K線圖
-  - `/forecast` (pred, predict) - 價格預測
-  - `/taiex` (twii, index) - 大盤指數
-  - `/plan` (trade) - 交易計劃
-  - `/clear` (cls) - 清除聊天
-
-#### 2. SAPTA BollingerBands 修復
-- [x] 修復 `bb_squeeze.py` 的 ta 庫參數錯誤
-- [x] 將 `window`/`window_dev` 改為 `n`/`ndev` (ta 0.5.25 相容)
-
-#### 3. CLI 輸出繁體中文化
-- [x] `/help` - 可用命令、說明、用法、別名
-- [x] `/technical` - 技術分析標題、狀態翻譯 (超買/超賣/多頭/空頭)
-- [x] `/fundamental` - 基本面分析、估值評分、類別名稱
-- [x] `/institutional` - 法人動向 (已是中文)
-- [x] `/sector` - 產業分析、漲跌幅前三
-- [x] `/compare` - 股票比較、表頭翻譯
-- [x] `/chart` - 圖表已儲存
-- [x] `/forecast` - 價格預測、趨勢翻譯、支撐/壓力位
-- [x] `/taiex` - 指數、漲跌、今日區間、52週區間
-- [x] `/screen` - 錯誤訊息
-- [x] `/analyze` - 錯誤訊息
-- [x] `/models` - 模型切換訊息
-
-#### 4. 輸出格式美化
-- [x] `/forecast` - 表格式輸出 + emoji 圖示
-- [x] `/taiex` - 表格式輸出
-- [x] `/compare` - 表格式輸出
+> **最後更新**: 2026-01-14
+> **整體進度**: 核心功能 100% 完成
 
 ---
 
-## 已完成部分 ✅
+## 專案概述
 
-### 1. 數據層重構
-- [x] `finmind_data.py` - FinMind 數據獲取完整實現 (850+ 行)
-- [x] `stock_data_provider.py` - 統一數據層 (FinMind 優先 + yfinance 回退)
-- [x] `yfinance.py` - 更新為台灣市場 (.TW 後綴, TAIEX/TPEX 指數)
+**Pulse-CLI** 是一個台灣股票市場分析的命令列工具 (TUI)，提供技術分析、基本面分析、法人動向、SAPTA 預測引擎等功能。
 
-### 2. 核心模組台灣化
-- [x] 完成所有核心模組的台灣化改寫
-- [x] 移除印尼 Stockbit 平台相關代碼
-
-### 3. CLI 命令
-- [x] 所有命令已註冊並測試通過
-- [x] 輸出已中文化
-
-### 4. 驗證測試
-- [x] 所有命令測試通過
-
----
-
-## 待完成部分 ⏳
-
-### UI 輸出格式改善建議 (優先級: 高)
-
-#### 1. 統一視覺風格
-- [ ] 所有命令使用一致的表格框線樣式 (`═══`, `┌─┐`, `└─┘`)
-- [ ] 統一標題格式：`═══ 命令名稱: 股票代碼 ═══`
-- [ ] 統一使用 emoji 圖示增加可讀性
-
-#### 2. 數據對齊
-- [ ] 數字靠右對齊
-- [ ] 文字靠左對齊
-- [ ] 固定欄位寬度確保表格整齊
-
-#### 3. 顏色編碼 (使用 Rich 庫)
-- [ ] 🟢 綠色：正數、上漲、多頭訊號
-- [ ] 🔴 紅色：負數、下跌、空頭訊號
-- [ ] 🟡 黃色：中性、警告
-- [ ] 安裝 `rich` 庫：`pip install rich`
-
-#### 4. 視覺化進度條
-- [ ] SAPTA 分數顯示進度條
-- [ ] RSI 等指標顯示進度條
-- [ ] 範例：`████████░░░░░░░░ 34/100`
-
-#### 5. 分組與區塊
-- [ ] 技術分析按類別分組 (趨勢指標、動能指標、支撐壓力)
-- [ ] 基本面分析按類別分組 (估值、獲利、成長、股利)
-- [ ] 使用視覺分隔線區分區塊
-
-#### 6. 快速摘要區
-- [ ] 在詳細數據前加入一行摘要
-- [ ] 範例：`📊 2330 台積電 | NT$1,710 📈+1.18% | 多頭 | RSI超買`
-
-#### 7. 優先改善的命令
-| 優先級 | 命令 | 原因 |
-|--------|------|------|
-| 1 | `/technical` | 最常用，指標多，需要分組 |
-| 2 | `/fundamental` | 類別分組需改善 |
-| 3 | `/sapta` | 模組分數可加進度條 |
-| 4 | `/screen` | 結果列表需表格化 |
-
-#### 8. 建議的技術實作方案
-| 方案 | 優點 | 缺點 | 建議 |
-|------|------|------|------|
-| **Rich 庫** | 顏色、表格、進度條完整支援 | 需要新增依賴 | ⭐ 推薦 |
-| **Textual 內建** | 已有依賴，整合度高 | 功能較限制 | 備選 |
-| **純 Unicode** | 無需新依賴 | 無顏色支援 | 簡單場景 |
-
----
-
-### 未來規劃 (可選)
-
-- [ ] 添加實時數據支持 (WebSocket 或輪詢)
-- [ ] 添加自選股和投資組合追蹤功能
-- [ ] 添加價格警報通知
-- [ ] 添加更多 FinMind 數據源 (例如：庫藏股、增減資資料)
-- [ ] 支持基本面選股條件
-
----
-
-## 技術規格
-
-| 項目 | 規格 |
-|------|------|
-| **股票代碼格式** | 4-6位數字 (2330, 2454, 2317) |
-| **Yahoo Finance 後綴** | .TW |
-| **貨幣** | NT$ (台幣) |
-| **語言** | 繁體中文 + 英文 |
-| **主要數據源** | FinMind |
-| **備用數據源** | Yahoo Finance |
-| **交易單位** | 1張=1000股 |
-| **ta 庫版本** | 0.5.25 (FinMind 兼容性) |
-
----
-
-## 命令快速參考
-
-```bash
-# 安裝依賴
-pip install -e ".[dev]"
-
-# 運行 CLI
-python -m pulse.cli.app
-
-# 運行測試
-python -m pytest tests/test_core/test_data/test_yfinance.py -v
+### 技術架構
+```
+pulse/
+├── cli/           # Textual TUI 介面
+├── core/
+│   ├── analysis/  # 技術分析、基本面、法人動向
+│   ├── data/      # FinMind + Yahoo Finance 數據層
+│   ├── sapta/     # SAPTA 預測引擎 (6個模組 + ML)
+│   └── screener/  # 股票篩選器
+└── utils/         # 格式化輸出工具
 ```
 
-### 可用命令
+### 數據來源
+| 來源 | 用途 | 備註 |
+|------|------|------|
+| **FinMind** | 法人動向、融資融券 | 主要來源，有 API 配額限制 |
+| **Yahoo Finance** | 股價、技術指標 | 備援來源，無限制 |
 
-| 命令 | 別名 | 說明 | 需要 AI |
-|------|------|------|---------|
-| `/help` | h, ? | 查看可用命令 | ❌ |
-| `/technical` | tech, ta | 技術分析 | ❌ |
-| `/fundamental` | fund, fa | 基本面分析 | ❌ |
-| `/institutional` | inst, flow | 法人動向 | ❌ |
-| `/sapta` | premarkup | SAPTA 綜合分析 | ❌ |
-| `/chart` | k, kline | K線圖 | ❌ |
-| `/forecast` | pred | 價格預測 | ❌ |
-| `/compare` | cmp, vs | 股票比較 | ❌ |
-| `/taiex` | twii, index | 大盤指數 | ❌ |
-| `/sector` | industry | 產業分析 | ❌ |
-| `/screen` | scan | 股票篩選 | ❌ |
-| `/plan` | trade | 交易計劃 | ❌ |
-| `/analyze` | a, stock | AI 綜合分析 | ✅ |
-| `/models` | model, m | 切換 AI 模型 | ✅ |
-| `/clear` | cls | 清除聊天 | ❌ |
+---
+
+## 可用命令
+
+| 命令 | 別名 | 說明 |
+|------|------|------|
+| `/help` | h, ? | 查看可用命令 |
+| `/technical` | tech, ta | 技術分析 (RSI, MACD, BB) |
+| `/fundamental` | fund, fa | 基本面分析 (PE, ROE, 殖利率) |
+| `/institutional` | inst, flow | 法人動向 (需 FinMind API) |
+| `/sapta` | premarkup | SAPTA 綜合預測分析 |
+| `/screen` | scan | 股票篩選 (超買/超賣/突破) |
+| `/chart` | k, kline | K線圖 (輸出 PNG) |
+| `/forecast` | pred | 價格預測 |
+| `/compare` | cmp, vs | 多檔股票比較 |
+| `/taiex` | twii, index | 大盤指數資訊 |
+| `/sector` | industry | 產業分析 |
+| `/plan` | trade | 交易計劃生成 |
+| `/clear` | cls | 清除聊天 |
+| `/exit` | quit, q | 退出程式 |
+
+---
+
+## 2026-01-14 更新記錄
+
+### 修復項目
+- [x] 命令註冊修復 (11個命令)
+- [x] SAPTA BollingerBands ta 庫參數修復 (`n`/`ndev`)
+- [x] CLI 輸出繁體中文化
+- [x] Windows emoji 相容性 (fallback 機制)
+- [x] 循環導入警告修復 (`__init__.py` lazy import)
+
+### 新增功能
+- [x] `/exit` 退出指令 (別名: quit, q)
+- [x] 股票篩選器使用 constants.py 股票清單
+- [x] 簡潔條列式輸出格式 (取代表格)
+
+### 股票篩選器 Universe
+| 參數 | 股票數 | 說明 |
+|------|--------|------|
+| `--universe=tw50` | 50 檔 | 台灣50成分股 |
+| `--universe=midcap` | 29 檔 | 中型股 |
+| `--universe=popular` | 76 檔 | 熱門股 |
+| `--universe=all` | 102 檔 | 全部 |
+
+---
+
+## 已知限制
+
+1. **FinMind API 配額**: 免費版有請求上限，法人動向功能可能受限
+2. **AI 分析功能**: 需要本地 AI 服務 (localhost:8317)
+
+---
+
+## 快速開始
+
+```bash
+# 安裝
+pip install -e ".[dev]"
+
+# 運行
+python -m pulse.cli.app
+
+# 常用命令
+/help              # 查看說明
+/technical 2330    # 台積電技術分析
+/sapta 2330        # SAPTA 分析
+/screen oversold   # 篩選超賣股
+/exit              # 退出
+```
+
+---
+
+## 未來規劃 (可選)
+
+- [ ] 實時數據支持 (WebSocket)
+- [ ] 自選股追蹤功能
+- [ ] 價格警報通知
+- [ ] 更多 FinMind 數據源
 
 ---
 
 **Pulse-CLI 台灣股票市場分析工具** 🇹🇼
-
-```bash
-# 快速開始
-pip install -e ".[dev]"
-python -m pulse.cli.app
-/help
-```

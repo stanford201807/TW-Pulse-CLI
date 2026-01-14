@@ -209,6 +209,14 @@ class CommandRegistry:
             aliases=["cls"],
         )
 
+        self.register(
+            "exit",
+            self._cmd_exit,
+            "Exit the application (退出程式)",
+            "/exit",
+            aliases=["quit", "q"],
+        )
+
     async def _cmd_help(self, args: str) -> str:
         """Help command handler."""
         if args:
@@ -314,6 +322,7 @@ class CommandRegistry:
         ticker = args.strip().upper()
 
         from pulse.core.analysis.technical import TechnicalAnalyzer
+        from pulse.utils.rich_output import create_technical_table
 
         analyzer = TechnicalAnalyzer()
         indicators = await analyzer.analyze(ticker)
@@ -322,27 +331,7 @@ class CommandRegistry:
             return f"無法分析 {ticker}，請確認股票代碼是否正確"
 
         summary = analyzer.get_indicator_summary(indicators)
-
-        # Translate status labels
-        status_map = {
-            "Overbought": "超買",
-            "Oversold": "超賣",
-            "Neutral": "中性",
-            "Bullish": "多頭",
-            "Bearish": "空頭",
-            "Strong": "強勢",
-            "Weak": "弱勢",
-        }
-
-        lines = [f"技術分析: {ticker}\n"]
-
-        for item in summary:
-            status_text = item.get("status", "")
-            status_zh = status_map.get(status_text, status_text)
-            status = f" ({status_zh})" if status_zh else ""
-            lines.append(f"  {item['name']}: {item['value']}{status}")
-
-        return "\n".join(lines)
+        return create_technical_table(ticker, summary)
 
     async def _cmd_fundamental(self, args: str) -> str:
         """Fundamental analysis command handler."""
@@ -352,6 +341,7 @@ class CommandRegistry:
         ticker = args.strip().upper()
 
         from pulse.core.analysis.fundamental import FundamentalAnalyzer
+        from pulse.utils.rich_output import create_fundamental_table
 
         analyzer = FundamentalAnalyzer()
         data = await analyzer.analyze(ticker)
@@ -362,41 +352,7 @@ class CommandRegistry:
         summary = analyzer.get_summary(data)
         score_data = analyzer.score_valuation(data)
 
-        # Translate category and status labels
-        category_map = {
-            "Valuation": "估值指標",
-            "Profitability": "獲利能力",
-            "Growth": "成長指標",
-            "Dividend": "股利資訊",
-            "Financial Health": "財務健康",
-        }
-        status_map = {
-            "Undervalued": "低估",
-            "Overvalued": "高估",
-            "Fair": "合理",
-            "Good": "良好",
-            "Excellent": "優秀",
-            "Poor": "較差",
-            "High": "高",
-            "Low": "低",
-        }
-
-        lines = [f"基本面分析: {ticker}\n"]
-        lines.append(f"估值評分: {score_data['score']}/100\n")
-
-        current_category = ""
-        for item in summary:
-            if item["category"] != current_category:
-                current_category = item["category"]
-                category_zh = category_map.get(current_category, current_category)
-                lines.append(f"\n{category_zh}")
-
-            status_text = item.get("status", "")
-            status_zh = status_map.get(status_text, status_text)
-            status = f" ({status_zh})" if status_zh else ""
-            lines.append(f"  {item['name']}: {item['value']}{status}")
-
-        return "\n".join(lines)
+        return create_fundamental_table(ticker, summary, score_data['score'])
 
     async def _cmd_screen(self, args: str) -> str:
         """Screen stocks based on technical/fundamental criteria."""
@@ -467,7 +423,26 @@ Example (範例):
         if not results:
             return f"找不到符合條件的股票: {criteria_str}"
 
-        return screener.format_results(results, title=title, show_details=True)
+        # Convert ScreenResult to dict format for rich_output
+        from pulse.utils.rich_output import create_screen_table
+
+        result_dicts = []
+        for r in results:
+            signal = ""
+            if r.rsi_status:
+                signal = "bullish" if "oversold" in r.rsi_status.lower() else "bearish" if "overbought" in r.rsi_status.lower() else ""
+            if not signal and r.macd_status:
+                signal = "bullish" if "bullish" in r.macd_status.lower() else "bearish" if "bearish" in r.macd_status.lower() else ""
+
+            result_dicts.append({
+                "ticker": r.ticker,
+                "price": r.price,
+                "change_percent": r.change_percent,
+                "rsi": r.rsi_14,
+                "signal": signal,
+            })
+
+        return create_screen_table(result_dicts, title)
 
     async def _cmd_sector(self, args: str) -> str:
         """Sector analysis command handler."""
@@ -545,20 +520,9 @@ Example (範例):
         if len(results) < 2:
             return "無法取得足夠的資料進行比較"
 
-        lines = ["═══ 股票比較 ═══\n"]
-        lines.append("┌────────┬──────────────┬────────────┬────────────────┐")
-        lines.append("│  代碼  │     股價     │   漲跌幅   │      成交量    │")
-        lines.append("├────────┼──────────────┼────────────┼────────────────┤")
+        from pulse.utils.rich_output import create_compare_table
 
-        for r in results:
-            change_str = f"{r['change_pct']:+.2f}%"
-            icon = "📈" if r['change_pct'] >= 0 else "📉"
-            vol_str = f"{r['volume']:,.0f}"
-            lines.append(f"│ {r['ticker']:<6} │ {r['price']:>12,.0f} │ {change_str:>10} │ {vol_str:>14} │")
-
-        lines.append("└────────┴──────────────┴────────────┴────────────────┘")
-
-        return "\n".join(lines)
+        return create_compare_table(results)
 
     async def _cmd_chart(self, args: str) -> str:
         """Chart command handler - generate and save price chart as PNG."""
@@ -600,9 +564,12 @@ Example (範例):
         change = current - prev
         change_pct = (change / prev * 100) if prev else 0
 
-        return f"""{ticker}: NT$ {current:,.2f} ({change:+,.2f}, {change_pct:+.2f}%)
+        from pulse.utils.rich_output import ICONS, get_trend_icon
 
-圖表已儲存: {filepath}"""
+        trend_icon = get_trend_icon(change_pct)
+        return f"""{trend_icon} {ticker}: NT$ {current:,.2f} ({change:+,.2f}, {change_pct:+.2f}%)
+
+{ICONS['chart']} 圖表已儲存: {filepath}"""
 
     async def _cmd_forecast(self, args: str) -> str:
         """Forecast command handler - predict future prices and save chart as PNG."""
@@ -652,36 +619,31 @@ Example (範例):
             forecast_days=days,
         )
 
-        # Format summary
+        # Format summary using rich_output
+        from pulse.utils.rich_output import create_forecast_table
+
         current = prices[-1]
         target = result.target_price
-        change_pct = (target - current) / current * 100
-        trend_map = {"UP": "📈 上漲", "DOWN": "📉 下跌", "SIDEWAYS": "➡️ 盤整"}
-        trend_key = "UP" if change_pct > 0 else "DOWN" if change_pct < 0 else "SIDEWAYS"
-        trend_zh = trend_map[trend_key]
-        change_color = "+" if change_pct > 0 else ""
 
-        summary = f"""═══ 價格預測: {ticker} ({days} 天) ═══
-
-┌─────────────────────────────────┐
-│  現價      │ NT$ {current:>12,.2f}  │
-│  目標價    │ NT$ {target:>12,.2f}  │
-│  預期漲跌  │ {change_color}{change_pct:>12.2f}%  │
-├─────────────────────────────────┤
-│  趨勢      │ {trend_zh:<14}  │
-│  支撐位    │ NT$ {result.support:>12,.2f}  │
-│  壓力位    │ NT$ {result.resistance:>12,.2f}  │
-│  信心度    │ {result.confidence:>12.0f}%  │
-└─────────────────────────────────┘"""
-
-        if filepath:
-            summary += f"\n\n📊 圖表已儲存: {filepath}"
-
-        return summary
+        return create_forecast_table(
+            ticker=ticker,
+            current=current,
+            target=target,
+            support=result.support,
+            resistance=result.resistance,
+            confidence=result.confidence,
+            days=days,
+            chart_path=filepath,
+        )
 
     async def _cmd_clear(self, args: str) -> str | None:
         """Clear chat history."""
         self.app.action_clear()
+        return None
+
+    async def _cmd_exit(self, args: str) -> str | None:
+        """Exit the application."""
+        self.app.exit()
         return None
 
     async def _cmd_taiex(self, args: str) -> str:
@@ -722,29 +684,21 @@ Example (範例):
             prices = df["close"].tolist()
             chart_path = generator.price_chart(index_name, dates, prices, period="3mo")
 
-        # Format response
-        change_sign = "+" if index_data.change >= 0 else ""
-        trend_icon = "📈" if index_data.change >= 0 else "📉"
+        # Format response using rich_output
+        from pulse.utils.rich_output import create_index_table
 
-        result = f"""═══ {index_data.name} ({index_name}) ═══
-
-┌─────────────────────────────────┐
-│  指數      │ {index_data.current_price:>15,.2f}  │
-│  漲跌      │ {change_sign}{index_data.change:>14,.2f}  │
-│  漲跌幅    │ {change_sign}{index_data.change_percent:>14.2f}%  │
-├─────────────────────────────────┤
-│  今日最高  │ {index_data.day_high:>15,.2f}  │
-│  今日最低  │ {index_data.day_low:>15,.2f}  │
-│  52週最高  │ {index_data.week_52_high:>15,.2f}  │
-│  52週最低  │ {index_data.week_52_low:>15,.2f}  │
-└─────────────────────────────────┘
-
-{trend_icon} 趨勢: {"上漲" if index_data.change >= 0 else "下跌"}"""
-
-        if chart_path:
-            result += f"\n\n📊 圖表已儲存: {chart_path}"
-
-        return result
+        return create_index_table(
+            name=index_data.name,
+            index_name=index_name,
+            price=index_data.current_price,
+            change=index_data.change,
+            change_pct=index_data.change_percent,
+            day_low=index_data.day_low,
+            day_high=index_data.day_high,
+            week_52_low=index_data.week_52_low,
+            week_52_high=index_data.week_52_high,
+            chart_path=chart_path,
+        )
 
     async def _cmd_plan(self, args: str) -> str:
         """Trading plan command handler."""
@@ -881,6 +835,8 @@ Modules (分析模組):
         result = await engine.analyze(ticker)
 
         if not result:
-            return f"Could not analyze {ticker}. Make sure the ticker is valid."
+            return f"無法分析 {ticker}，請確認股票代碼是否正確"
 
-        return engine.format_result(result, detailed=detailed)
+        # Use rich formatting for better display
+        from pulse.utils.rich_output import create_sapta_table
+        return create_sapta_table(result)

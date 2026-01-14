@@ -8,6 +8,7 @@ from pulse.core.data.stock_data_provider import StockDataProvider
 from pulse.core.models import SignalType
 from pulse.utils.formatters import format_currency
 from pulse.utils.logger import get_logger
+from pulse.utils.rich_output import ICONS
 
 log = get_logger(__name__)
 
@@ -105,39 +106,39 @@ class InstitutionalFlowAnalyzer:
             analysis["signal"] = SignalType.BUY
             analysis["score"] = 70
             analysis["insights"].append(
-                f"🟢 機構法人總計淨買超 {analysis['overall_institutional_net_flow_formatted']} (過去 {days} 個交易日)"
+                f"{ICONS['green']} 機構法人總計淨買超 {analysis['overall_institutional_net_flow_formatted']} (過去 {days} 個交易日)"
             )
         elif overall_net_flow < 0:
             analysis["signal"] = SignalType.SELL
             analysis["score"] = 30
             analysis["insights"].append(
-                f"🔴 機構法人總計淨賣超 {analysis['overall_institutional_net_flow_formatted']} (過去 {days} 個交易日)"
+                f"{ICONS['red']} 機構法人總計淨賣超 {analysis['overall_institutional_net_flow_formatted']} (過去 {days} 個交易日)"
             )
         else:
-            analysis["insights"].append(f"⚪ 機構法人買賣超不明顯 (過去 {days} 個交易日)")
+            analysis["insights"].append(f"{ICONS['white']} 機構法人買賣超不明顯 (過去 {days} 個交易日)")
 
         if total_foreign_net > 0:
             analysis["insights"].append(
-                f"🟢 外資淨買超 {analysis['foreign_investor_net_formatted']}"
+                f"{ICONS['green']} 外資淨買超 {analysis['foreign_investor_net_formatted']}"
             )
         elif total_foreign_net < 0:
             analysis["insights"].append(
-                f"🔴 外資淨賣超 {analysis['foreign_investor_net_formatted']}"
+                f"{ICONS['red']} 外資淨賣超 {analysis['foreign_investor_net_formatted']}"
             )
 
         if total_investment_trust_net > 0:
             analysis["insights"].append(
-                f"🟢 投信淨買超 {analysis['investment_trust_net_formatted']}"
+                f"{ICONS['green']} 投信淨買超 {analysis['investment_trust_net_formatted']}"
             )
         elif total_investment_trust_net < 0:
             analysis["insights"].append(
-                f"🔴 投信淨賣超 {analysis['investment_trust_net_formatted']}"
+                f"{ICONS['red']} 投信淨賣超 {analysis['investment_trust_net_formatted']}"
             )
 
         if total_dealer_net > 0:
-            analysis["insights"].append(f"🟢 自營商淨買超 {analysis['dealer_net_formatted']}")
+            analysis["insights"].append(f"{ICONS['green']} 自營商淨買超 {analysis['dealer_net_formatted']}")
         elif total_dealer_net < 0:
-            analysis["insights"].append(f"🔴 自營商淨賣超 {analysis['dealer_net_formatted']}")
+            analysis["insights"].append(f"{ICONS['red']} 自營商淨賣超 {analysis['dealer_net_formatted']}")
 
         return analysis
 

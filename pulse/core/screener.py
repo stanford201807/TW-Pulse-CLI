@@ -8,30 +8,22 @@ Supports:
 """
 
 import asyncio
-import json
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
 from typing import Any
 
 from pulse.utils.logger import get_logger
+from pulse.utils.constants import TW50_TICKERS, MIDCAP100_TICKERS, TPEX_POPULAR
 
 log = get_logger(__name__)
 
-# Path to tickers data
-TICKERS_FILE = Path(__file__).parent.parent.parent / "data" / "tw_tickers.json"
-
 
 def load_all_tickers() -> list[str]:
-    """Load all tickers from JSON file."""
-    try:
-        if TICKERS_FILE.exists():
-            with open(TICKERS_FILE) as f:
-                return json.load(f)
-    except Exception as e:
-        log.error(f"Error loading tickers: {e}")
-    return []
+    """Load all tickers (TW50 + MIDCAP + POPULAR combined)."""
+    # Combine all ticker lists and remove duplicates
+    all_tickers = list(set(TW50_TICKERS + MIDCAP100_TICKERS + TPEX_POPULAR))
+    return sorted(all_tickers)
 
 
 class ScreenPreset(str, Enum):
@@ -164,17 +156,6 @@ class StockScreener:
         results = await screener.smart_screen("saham yang akan naik")
     """
 
-    @property
-    def default_universe(self) -> list[str]:
-        """Get default universe (ALL Taiwan stocks)."""
-        return load_all_tickers()
-
-    def _get_universe(self, universe_type: StockUniverse) -> list[str]:
-        """Get stock universe based on type."""
-        if universe_type == StockUniverse.ALL:
-            return load_all_tickers()
-        return self.default_universe
-
     # Preset criteria definitions
     PRESETS = {
         ScreenPreset.OVERSOLD: {
@@ -234,23 +215,33 @@ class StockScreener:
     def __init__(
         self,
         universe: list[str] | None = None,
+        universe_type: StockUniverse | None = None,
     ):
         """
         Initialize screener with stock universe.
 
         Args:
-            universe: Custom list of tickers. If None, uses all tickers from tw_tickers.json.
+            universe: Custom list of tickers. If provided, overrides universe_type.
+            universe_type: Predefined universe type (TW50, MIDCAP, POPULAR, ALL).
         """
         if universe:
             self.universe = universe
+        elif universe_type:
+            self.universe = self._get_universe(universe_type)
         else:
-            self.universe = load_all_tickers()
+            self.universe = TW50_TICKERS  # Default to TW50
 
     def _get_universe(self, universe_type: StockUniverse) -> list[str]:
-        """Get stock universe based on type (only ALL supported now)."""
-        if universe_type == StockUniverse.ALL:
+        """Get stock universe based on type."""
+        if universe_type == StockUniverse.TW50:
+            return TW50_TICKERS
+        elif universe_type == StockUniverse.MIDCAP:
+            return MIDCAP100_TICKERS
+        elif universe_type == StockUniverse.POPULAR:
+            return TW50_TICKERS + TPEX_POPULAR  # Combined popular stocks
+        elif universe_type == StockUniverse.ALL:
             return load_all_tickers()
-        return self.default_universe
+        return TW50_TICKERS  # Default
 
     async def _fetch_stock_data(self, ticker: str) -> ScreenResult | None:
         """Fetch all data needed for screening."""
