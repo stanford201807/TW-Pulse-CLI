@@ -944,13 +944,6 @@ Sebutkan saham mana yang paling menarik dan mengapa berdasarkan data di atas."""
             ai = self._get_ai_client()
 
             # Build context for AI
-            quality_desc = {
-                "Excellent": "sangat bagus dengan RR ratio tinggi",
-                "Good": "cukup bagus untuk dieksekusi",
-                "Fair": "cukup layak tapi perlu hati-hati",
-                "Poor": "kurang ideal, RR ratio rendah",
-            }
-
             ai_prompt = f"""Trading Plan {ticker}:
 Entry: Rp {plan.entry_price:,.0f}
 TP1: Rp {plan.tp1:,.0f} ({plan.tp1_percent:+.2f}%)
@@ -1011,14 +1004,6 @@ Apakah layak dieksekusi? Apa yang perlu diperhatikan?"""
 
             # Add AI commentary for interpretation
             ai = self._get_ai_client()
-
-            # Build context for AI
-            status_desc = {
-                "PRE-MARKUP": "siap breakout dalam waktu dekat",
-                "SIAP": "hampir siap, perlu monitoring ketat",
-                "WATCHLIST": "masih dalam tahap akumulasi",
-                "ABAIKAN": "belum menunjukkan sinyal pre-markup",
-            }
 
             notes_str = (
                 "\n".join(f"- {n}" for n in result.notes[:5])

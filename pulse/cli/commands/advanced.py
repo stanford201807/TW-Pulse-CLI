@@ -64,8 +64,8 @@ async def sector_command(app: "PulseApp", args: str) -> str:
 
     if analysis.top_losers:
         lines.append("\n跌幅前三")
-        for l in analysis.top_losers[:3]:
-            lines.append(f"  {l['ticker']}: {l['change_percent']:.2f}%")
+        for loser in analysis.top_losers[:3]:
+            lines.append(f"  {loser['ticker']}: {loser['change_percent']:.2f}%")
 
     return "\n".join(lines)
 
@@ -208,7 +208,32 @@ Modules (分析模組):
     if not result:
         return f"無法分析 {ticker}，請確認股票代碼是否正確"
 
+    # Fetch price data for detailed mode
+    current_price = None
+    recent_high = None
+    support_level = None
+    if detailed:
+        try:
+            from pulse.core.data.stock_data_provider import StockDataProvider
+
+            provider = StockDataProvider()
+            stock = await provider.fetch_stock(ticker)
+            if stock:
+                current_price = stock.current_price
+                # Use day high as recent high, or week 52 high
+                recent_high = stock.day_high if stock.day_high > 0 else stock.week_52_high
+                # Use day low as support
+                support_level = stock.day_low if stock.day_low > 0 else None
+        except Exception:
+            pass  # Silently fail if price data not available
+
     # Use rich formatting for better display
     from pulse.utils.rich_output import create_sapta_table
 
-    return create_sapta_table(result)
+    return create_sapta_table(
+        result,
+        detailed=detailed,
+        current_price=current_price,
+        recent_high=recent_high,
+        support_level=support_level,
+    )

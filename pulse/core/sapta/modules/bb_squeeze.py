@@ -19,10 +19,10 @@ from pulse.core.sapta.modules.base import BaseModule
 class BBSqueezeModule(BaseModule):
     """
     Detect Bollinger Band squeeze.
-    
+
     A squeeze occurs when BB Width is at historical lows,
     indicating compressed volatility ready to expand.
-    
+
     Max Score: 15
     """
 
@@ -39,7 +39,7 @@ class BBSqueezeModule(BaseModule):
     ) -> ModuleScore:
         """
         Analyze Bollinger Band squeeze.
-        
+
         Args:
             df: OHLCV DataFrame
             bb_period: Bollinger Band period
@@ -54,7 +54,7 @@ class BBSqueezeModule(BaseModule):
         signals = []
         features = {}
 
-        close = df['close']
+        close = df["close"]
 
         # Calculate Bollinger Bands
         # ta 0.5.25 uses 'n' and 'ndev' instead of 'window' and 'window_dev'
@@ -68,8 +68,8 @@ class BBSqueezeModule(BaseModule):
         lookback_width = bb_width.tail(200)
         width_percentile = (lookback_width < current_width).sum() / len(lookback_width) * 100
 
-        features['bb_width_current'] = float(current_width)
-        features['bb_width_percentile'] = float(width_percentile)
+        features["bb_width_current"] = float(current_width)
+        features["bb_width_percentile"] = float(width_percentile)
 
         if width_percentile <= 10:
             score += 8
@@ -92,7 +92,7 @@ class BBSqueezeModule(BaseModule):
             else:
                 break
 
-        features['squeeze_duration'] = int(squeeze_count)
+        features["squeeze_duration"] = int(squeeze_count)
 
         if squeeze_count >= min_squeeze_duration * 2:
             score += 5
@@ -107,13 +107,12 @@ class BBSqueezeModule(BaseModule):
         # === Check 3: Price position in bands ===
         bb_upper = bb.bollinger_hband().iloc[-1]
         bb_lower = bb.bollinger_lband().iloc[-1]
-        bb_mid = bb.bollinger_mavg().iloc[-1]
         current_price = close.iloc[-1]
 
         bb_range = bb_upper - bb_lower
         if bb_range > 0:
             price_position = (current_price - bb_lower) / bb_range
-            features['price_position_in_bb'] = float(price_position)
+            features["price_position_in_bb"] = float(price_position)
 
             # Best for breakout: price near middle or upper half
             if 0.4 <= price_position <= 0.6:

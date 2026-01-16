@@ -12,8 +12,8 @@ from textual.widgets.option_list import Option
 from pulse.ai.client import AIClient
 from pulse.cli.commands.registry import CommandRegistry
 from pulse.core.smart_agent import SmartAgent
-from pulse.utils.logger import get_logger
 from pulse.utils.error_handler import format_error_response
+from pulse.utils.logger import get_logger
 
 log = get_logger(__name__)
 
@@ -32,15 +32,15 @@ class CommandPalette(OptionList):
         border: solid #30363d;
         display: none;
     }
-    
+
     CommandPalette:focus {
         border: solid #58a6ff;
     }
-    
+
     CommandPalette > .option-list--option {
         padding: 0 1;
     }
-    
+
     CommandPalette > .option-list--option-highlighted {
         background: #21262d;
         color: #58a6ff;
@@ -62,7 +62,7 @@ class ModelsModal(ModalScreen):
     ModelsModal {
         align: center middle;
     }
-    
+
     ModelsModal > Vertical {
         width: 60;
         height: auto;
@@ -71,30 +71,30 @@ class ModelsModal(ModalScreen):
         border: solid #30363d;
         padding: 1 2;
     }
-    
+
     ModelsModal .modal-title {
         text-align: center;
         color: #58a6ff;
         text-style: bold;
         margin-bottom: 1;
     }
-    
+
     ModelsModal OptionList {
         height: auto;
         max-height: 12;
         background: #0d1117;
         border: none;
     }
-    
+
     ModelsModal OptionList > .option-list--option {
         padding: 0 1;
     }
-    
+
     ModelsModal OptionList > .option-list--option-highlighted {
         background: #21262d;
         color: #58a6ff;
     }
-    
+
     ModelsModal .modal-hint {
         text-align: center;
         color: #484f58;
@@ -144,7 +144,7 @@ class PulseApp(App):
         background: #0d1117;
         layers: base overlay;
     }
-    
+
     #chat {
         layer: base;
         height: 1fr;
@@ -154,24 +154,24 @@ class PulseApp(App):
         overflow-y: auto;
         overflow-x: hidden;
     }
-    
+
     .user-msg {
         color: #58a6ff;
         margin: 1 0 0 0;
         padding: 0 0 0 2;
         border-left: thick #58a6ff;
     }
-    
+
     .ai-msg {
         color: #c9d1d9;
         margin: 0 0 1 0;
     }
-    
+
     .ai-msg Markdown {
         margin: 0;
         padding: 0;
     }
-    
+
     .ai-msg MarkdownH1,
     .ai-msg MarkdownH2,
     .ai-msg MarkdownH3 {
@@ -181,47 +181,47 @@ class PulseApp(App):
         border: none;
         background: transparent;
     }
-    
+
     .ai-msg MarkdownBulletList,
     .ai-msg MarkdownOrderedList {
         margin: 0;
         padding: 0 0 0 2;
     }
-    
+
     .thinking {
         color: #484f58;
         text-style: italic;
         padding: 0 0 0 2;
         border-left: thick #484f58;
     }
-    
+
     .welcome {
         color: #484f58;
     }
-    
+
     .chart-msg {
         color: #8b949e;
         margin: 0 0 1 0;
         padding: 0;
     }
-    
+
     #input-area {
         dock: bottom;
         height: auto;
         padding: 0 2 1 2;
     }
-    
+
     #input {
         height: 3;
         background: #161b22;
         border: solid #30363d;
         padding: 0 1;
     }
-    
+
     #input:focus {
         border: solid #58a6ff;
     }
-    
+
     #status {
         height: 1;
         background: #161b22;
@@ -229,7 +229,7 @@ class PulseApp(App):
         padding: 0 1;
         text-align: right;
     }
-    
+
     Footer {
         background: #161b22;
     }

@@ -21,15 +21,15 @@ from pulse.core.sapta.modules.base import BaseModule
 class ElliottModule(BaseModule):
     """
     Advanced Elliott Wave analysis.
-    
+
     Key rules:
     1. Wave 2 never retraces more than 100% of Wave 1
     2. Wave 3 is never the shortest
     3. Wave 4 doesn't overlap Wave 1 territory
     4. Alternation: If Wave 2 is sharp, Wave 4 is flat
-    
+
     Best entry: End of Wave 2 (38-61% retracement) or Wave 4
-    
+
     Max Score: 20
     """
 
@@ -47,7 +47,7 @@ class ElliottModule(BaseModule):
     ) -> ModuleScore:
         """
         Analyze Elliott Wave context.
-        
+
         Args:
             df: OHLCV DataFrame
             lookback: Number of candles for wave analysis
@@ -65,20 +65,20 @@ class ElliottModule(BaseModule):
 
         # Find swing points
         swings = self._find_swing_points(recent, swing_lookback)
-        features['swing_count'] = len(swings)
+        features["swing_count"] = len(swings)
 
         if len(swings) < 3:
             return self._create_score(0, False, "Not enough swing points", [], features)
 
         # === Calculate retracement from last major move ===
         # Find the last significant high and low
-        swing_high = recent['high'].max()
-        swing_low = recent['low'].min()
-        current_price = recent['close'].iloc[-1]
+        swing_high = recent["high"].max()
+        swing_low = recent["low"].min()
+        current_price = recent["close"].iloc[-1]
 
         # Determine if we're in an uptrend or downtrend context
-        high_idx = recent['high'].idxmax()
-        low_idx = recent['low'].idxmin()
+        high_idx = recent["high"].idxmax()
+        low_idx = recent["low"].idxmin()
 
         wave_range = swing_high - swing_low
 
@@ -87,12 +87,12 @@ class ElliottModule(BaseModule):
                 # Uptrend: low came first, then high
                 # We might be in Wave 2 or 4 (retracing from high)
                 retrace_from_high = (swing_high - current_price) / wave_range
-                features['retracement'] = float(retrace_from_high)
-                features['trend_context'] = 'uptrend'
+                features["retracement"] = float(retrace_from_high)
+                features["trend_context"] = "uptrend"
 
                 # Check Fibonacci retracement levels
                 fib_score, fib_signal, phase = self._score_retracement(
-                    retrace_from_high, 'correction_down'
+                    retrace_from_high, "correction_down"
                 )
                 score += fib_score
                 if fib_signal:
@@ -103,11 +103,11 @@ class ElliottModule(BaseModule):
                 # Downtrend: high came first, then low
                 # We might be in corrective bounce
                 retrace_from_low = (current_price - swing_low) / wave_range
-                features['retracement'] = float(retrace_from_low)
-                features['trend_context'] = 'downtrend'
+                features["retracement"] = float(retrace_from_low)
+                features["trend_context"] = "downtrend"
 
                 fib_score, fib_signal, phase = self._score_retracement(
-                    retrace_from_low, 'correction_up'
+                    retrace_from_low, "correction_up"
                 )
                 score += fib_score
                 if fib_signal:
@@ -116,7 +116,7 @@ class ElliottModule(BaseModule):
 
         # === Check for ABC pattern ===
         abc_detected, abc_details = self._detect_abc_pattern(swings)
-        features['abc_pattern'] = float(abc_detected)
+        features["abc_pattern"] = float(abc_detected)
 
         if abc_detected:
             score += 6
@@ -126,7 +126,7 @@ class ElliottModule(BaseModule):
 
         # === Validate Elliott rules ===
         violations = self._check_elliott_rules(swings)
-        features['rule_violations'] = len(violations)
+        features["rule_violations"] = len(violations)
 
         if violations:
             score -= len(violations) * 2
@@ -137,15 +137,15 @@ class ElliottModule(BaseModule):
         # RSI divergence at potential wave end
         if len(recent) >= 14:
             rsi_div = self._check_rsi_divergence(recent)
-            features['rsi_divergence'] = float(rsi_div)
+            features["rsi_divergence"] = float(rsi_div)
 
             if rsi_div:
                 score += 4
                 signals.append("RSI divergence confirms wave end")
 
         # Set wave phase in features
-        features['wave_phase'] = wave_phase.value
-        features['fib_retracement'] = features.get('retracement', 0)
+        features["wave_phase"] = wave_phase.value
+        features["fib_retracement"] = features.get("retracement", 0)
 
         # Determine status
         status = score >= 12
@@ -189,7 +189,7 @@ class ElliottModule(BaseModule):
     ) -> tuple[bool, str]:
         """
         Detect ABC corrective pattern.
-        
+
         ABC pattern:
         - A: Initial move against trend
         - B: Partial retracement of A
@@ -202,11 +202,11 @@ class ElliottModule(BaseModule):
         last_swings = swings[-4:]
 
         # Check for zigzag pattern
-        types = [s['type'] for s in last_swings]
-        prices = [s['price'] for s in last_swings]
+        types = [s["type"] for s in last_swings]
+        prices = [s["price"] for s in last_swings]
 
         # Pattern: high-low-high-low or low-high-low-high
-        if types == ['high', 'low', 'high', 'low']:
+        if types == ["high", "low", "high", "low"]:
             # Potential ABC down
             a_move = prices[0] - prices[1]  # A down
             b_move = prices[2] - prices[1]  # B up (retracement)
@@ -221,7 +221,7 @@ class ElliottModule(BaseModule):
                     if 0.8 <= c_ratio <= 1.8:
                         return True, f"ABC down (B retrace: {b_retrace:.0%}, C/A: {c_ratio:.1f})"
 
-        elif types == ['low', 'high', 'low', 'high']:
+        elif types == ["low", "high", "low", "high"]:
             # Potential ABC up
             a_move = prices[1] - prices[0]  # A up
             b_move = prices[1] - prices[2]  # B down (retracement)
@@ -250,15 +250,15 @@ class ElliottModule(BaseModule):
         # Full implementation would require proper wave labeling
 
         # Get prices
-        prices = [s['price'] for s in swings[-5:]]
-        types = [s['type'] for s in swings[-5:]]
+        prices = [s["price"] for s in swings[-5:]]
+        types = [s["type"] for s in swings[-5:]]
 
         # Check for potential Wave 4 overlapping Wave 1
         # (simplified: check if any low goes below first swing)
-        if types[0] == 'low':
+        if types[0] == "low":
             wave1_territory = prices[0]
             for i, (t, p) in enumerate(zip(types[1:], prices[1:]), 1):
-                if t == 'low' and i >= 3 and p < wave1_territory:
+                if t == "low" and i >= 3 and p < wave1_territory:
                     violations.append("Wave 4 overlaps Wave 1 territory")
                     break
 
@@ -269,26 +269,29 @@ class ElliottModule(BaseModule):
         try:
             from ta.momentum import RSIIndicator
 
-            rsi = RSIIndicator(df['close'], window=14).rsi()
+            rsi = RSIIndicator(df["close"], window=14).rsi()
 
             # Check last 10 bars for divergence
-            recent_price = df['close'].tail(10)
+            recent_price = df["close"].tail(10)
             recent_rsi = rsi.tail(10)
 
             # Bullish divergence: price lower low, RSI higher low
-            price_low_idx = recent_price.idxmin()
 
             # Find previous low
             first_half = recent_price.iloc[:5]
             second_half = recent_price.iloc[5:]
 
             if len(first_half) > 0 and len(second_half) > 0:
-                if (second_half.min() < first_half.min() and
-                    recent_rsi.loc[second_half.idxmin()] > recent_rsi.loc[first_half.idxmin()]):
+                if (
+                    second_half.min() < first_half.min()
+                    and recent_rsi.loc[second_half.idxmin()] > recent_rsi.loc[first_half.idxmin()]
+                ):
                     return True  # Bullish divergence
 
-                if (second_half.max() > first_half.max() and
-                    recent_rsi.loc[second_half.idxmax()] < recent_rsi.loc[first_half.idxmax()]):
+                if (
+                    second_half.max() > first_half.max()
+                    and recent_rsi.loc[second_half.idxmax()] < recent_rsi.loc[first_half.idxmax()]
+                ):
                     return True  # Bearish divergence
 
             return False

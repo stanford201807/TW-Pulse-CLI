@@ -115,7 +115,9 @@ class PriceForecaster:
                 trend = "sideways"
 
             # Calculate confidence based on prediction interval width
-            avg_interval = np.mean([u - l for u, l in zip(upper_bound, lower_bound)])
+            avg_interval = np.mean(
+                [upper - lower for upper, lower in zip(upper_bound, lower_bound)]
+            )
             confidence = max(0, min(100, 100 - (avg_interval / current_price * 100)))
 
             # Support and resistance from bounds
@@ -148,10 +150,10 @@ class PriceForecaster:
     ) -> ForecastResult | None:
         """Simple moving average based forecast."""
         try:
-            # Calculate moving averages
-            ma_short = np.mean(prices[-5:])
-            ma_medium = np.mean(prices[-20:])
-            ma_long = np.mean(prices[-50:]) if len(prices) >= 50 else np.mean(prices)
+            # Calculate moving averages (for future use in trend analysis)
+            # ma_short = np.mean(prices[-5:])
+            # ma_medium = np.mean(prices[-20:])
+            # ma_long = np.mean(prices[-50:]) if len(prices) >= 50 else np.mean(prices)
 
             # Simple trend extrapolation
             recent_trend = (prices[-1] - prices[-5]) / 5

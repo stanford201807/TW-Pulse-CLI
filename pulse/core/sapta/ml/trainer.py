@@ -108,14 +108,14 @@ class SaptaTrainer:
             return None
 
         # Prepare data
-        X, y = self._prepare_data(samples)
+        X, y = self._prepare_data(samples)  # noqa: N806
 
         if X is None or len(X) == 0:
             log.error("No valid features extracted")
             return None
 
         # Split data
-        X_train, X_test, y_train, y_test = train_test_split(
+        X_train, X_test, y_train, y_test = train_test_split(  # noqa: N806
             X, y, test_size=test_size, random_state=42, stratify=y
         )
 
@@ -280,8 +280,8 @@ class SaptaTrainer:
                 continue
 
             # Prepare data
-            X_train, y_train = self._prepare_data(train_samples)
-            X_test, y_test = self._prepare_data(test_samples)
+            X_train, y_train = self._prepare_data(train_samples)  # noqa: N806
+            X_test, y_test = self._prepare_data(test_samples)  # noqa: N806
 
             if X_train is None or X_test is None:
                 current_start = self._add_months(current_start, test_months)
@@ -335,7 +335,7 @@ class SaptaTrainer:
         log.info(f"Walk-forward metrics: {metrics}")
 
         # Train final model on all data
-        X_all, y_all = self._prepare_data(samples)
+        X_all, y_all = self._prepare_data(samples)  # noqa: N806
 
         if use_xgboost:
             final_model = xgb.XGBClassifier(
@@ -412,8 +412,8 @@ class SaptaTrainer:
         feature_names = sorted(all_names)
 
         # Build matrices
-        X = []
-        y = []
+        X = []  # noqa: N806
+        y = []  # noqa: N806
 
         for s in samples:
             row = [s.features.get(name, 0.0) for name in feature_names]
@@ -432,8 +432,8 @@ class SaptaTrainer:
     def _learn_thresholds(
         self,
         model: Any,
-        X: np.ndarray,
-        y: np.ndarray,
+        X: np.ndarray,  # noqa: N803
+        y: np.ndarray,  # noqa: N803
     ) -> dict[str, float]:
         """
         Learn optimal thresholds from model predictions.

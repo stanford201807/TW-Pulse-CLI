@@ -4,6 +4,12 @@ Provides consistent, beautiful terminal output.
 """
 
 import sys
+from typing import Any
+
+# Type definitions for better type checking
+ScreenResultDict = dict[str, Any]
+CompareResultDict = dict[str, Any]
+TechnicalIndicatorDict = dict[str, Any]
 
 
 # Check if we can use emojis (not on Windows cp950/gbk)
@@ -11,7 +17,7 @@ def _can_use_emoji() -> bool:
     """Check if terminal supports emoji."""
     try:
         # Handle cases where sys.stdout might be replaced (e.g., Textual's _PrintCapture)
-        encoding = getattr(sys.stdout, 'encoding', None) or 'utf-8'
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
         "📈".encode(encoding)
         return True
     except (UnicodeEncodeError, LookupError, AttributeError):
@@ -68,7 +74,7 @@ def get_trend_icon(value: float) -> str:
     return ICONS["neutral"]
 
 
-def create_technical_table(ticker: str, indicators: list[dict]) -> str:
+def create_technical_table(ticker: str, indicators: list[TechnicalIndicatorDict]) -> str:
     """Create a formatted technical analysis output."""
     lines = [create_header("技術分析", ticker), ""]
 
@@ -167,61 +173,285 @@ def create_fundamental_table(ticker: str, summary: list[dict], score: int) -> st
     return "\n".join(lines)
 
 
-def create_sapta_table(result) -> str:
-    """Create a formatted SAPTA analysis output."""
-    lines = [create_header("SAPTA 分析", result.ticker), ""]
+def create_sapta_table(
+    result,
+    detailed: bool = False,
+    current_price: float | None = None,
+    recent_high: float | None = None,
+    support_level: float | None = None,
+) -> str:
+    """Create a formatted SAPTA analysis output with Chinese interpretation.
 
-    # Status
-    status_str = result.status.value if hasattr(result.status, 'value') else str(result.status)
+    Args:
+        result: SaptaResult object with analysis data
+        detailed: If True, show additional details like price targets, support levels, ML probability
+        current_price: Current stock price (for detailed mode)
+        recent_high: Recent high price (for price target calculation)
+        support_level: Support level (for detailed mode)
+    """
+    lines = []
 
-    # Score bar
+    # === 1. 開頭摘要 ===
+    status_str = result.status.value if hasattr(result.status, "value") else str(result.status)
     score = result.total_score
-    score_bar = create_progress_bar(score, 100, 10)
 
-    lines.append(f"狀態: {status_str}")
-    lines.append(f"總分: [{score_bar}] {score:.0f}/100")
-    lines.append("")
+    # 狀態翻譯
+    status_translation = {
+        "PRE-MARKUP": ("PRE-MARKUP", "●", "準備突破"),
+        "SIAP": ("SIAP", "●", "接近突破"),
+        "WATCHLIST": ("WATCHLIST", "●", "觀察中"),
+        "SKIP": ("SKIP", "○", "跳過"),
+    }
+    status_en, status_icon, status_zh = status_translation.get(
+        status_str, (status_str, "○", status_str)
+    )
 
-    # Module scores
-    lines.append("[模組分數]")
+    # 信心度
+    if score >= 70:
+        confidence = "★★★★★"
+        confidence_zh = "極高"
+    elif score >= 55:
+        confidence = "★★★★☆"
+        confidence_zh = "高"
+    elif score >= 40:
+        confidence = "★★★☆☆"
+        confidence_zh = "中等"
+    else:
+        confidence = "★★☆☆☆"
+        confidence_zh = "偏低"
 
-    modules = [
-        ("absorption", "供給吸收", result.absorption),
-        ("compression", "價格壓縮", result.compression),
-        ("bb_squeeze", "布林擠壓", result.bb_squeeze),
-        ("elliott", "艾略特波浪", result.elliott),
-        ("time_projection", "時間投影", result.time_projection),
-        ("anti_distribution", "反派發", result.anti_distribution),
+    lines.append(f"SAPTA 分析: {result.ticker}")
+    lines.append(f"狀態: {status_icon} {status_en} ({status_zh}) - {score:.0f}/100")
+    lines.append(f"信心度: {confidence} ({confidence_zh})")
+
+    # === 詳細模式：價格與目標 ===
+    if detailed:
+        if current_price is not None:
+            lines.append(f"現價: {current_price:,.0f}")
+
+            # 計算價格目標
+            if status_en == "PRE-MARKUP":
+                # 突破在即，目標為近期高點 + 預期漲幅
+                if recent_high and recent_high > current_price:
+                    target1 = recent_high
+                    target2 = recent_high * 1.08
+                else:
+                    target1 = current_price * 1.08
+                    target2 = current_price * 1.15
+                stop_loss = current_price * 0.97
+            elif status_en == "SIAP":
+                target1 = current_price * 1.10
+                target2 = current_price * 1.20
+                stop_loss = current_price * 0.97
+            elif status_en == "WATCHLIST":
+                target1 = current_price * 1.15
+                target2 = current_price * 1.25
+                stop_loss = current_price * 0.95
+            else:  # SKIP
+                target1 = current_price * 1.05
+                target2 = current_price * 1.10
+                stop_loss = current_price * 0.95
+
+            lines.append(f"目標1: {target1:,.0f} (+{(target1 / current_price - 1) * 100:.1f}%)")
+            lines.append(f"目標2: {target2:,.0f} (+{(target2 / current_price - 1) * 100:.1f}%)")
+            lines.append(f"停損: {stop_loss:,.0f} ({(stop_loss / current_price - 1) * 100:.1f}%)")
+
+    # === 詳細模式：ML 機率 ===
+    if detailed and result.ml_probability is not None:
+        ml_pct = result.ml_probability * 100
+        lines.append(f"ML 機率: {ml_pct:.1f}%")
+
+    # 模組解讀 (max_scores from SaptaConfig)
+    modules_info = [
+        (
+            "absorption",
+            "供給吸收",
+            result.absorption,
+            20,
+            "主力持續吸籌，成交量放大後價格撐住",
+        ),
+        (
+            "compression",
+            "價格壓縮",
+            result.compression,
+            15,
+            "波動收斂，準備突破",
+        ),
+        (
+            "bb_squeeze",
+            "布林擠壓",
+            result.bb_squeeze,
+            15,
+            "布林通道收縮，突破在即",
+        ),
+        (
+            "elliott",
+            "艾略特波浪",
+            result.elliott,
+            20,
+            "處於修正浪末端，準備啟動主升浪",
+        ),
+        (
+            "time_projection",
+            "時間投影",
+            result.time_projection,
+            15,
+            "接近費波那契時間窗口",
+        ),
+        (
+            "anti_distribution",
+            "逆分佈",
+            result.anti_distribution,
+            15,
+            "無出貨跡象，籌碼穩定",
+        ),
     ]
 
-    for key, name, data in modules:
+    # 分類模組
+    strong_mods = []  # 強勢
+    weak_mods = []  # 弱勢
+    neutral_mods = []  # 中性
+
+    for key, name, data, max_score, interp in modules_info:
         if data:
             mod_score = data.get("score", 0)
-            max_score = data.get("max_score", 15)
-            bar = create_progress_bar(mod_score, max_score, 8)
-            status_mark = "v" if data.get("status", False) else " "
-            lines.append(f"  {name}: [{bar}] {mod_score:.0f}/{max_score:.0f} [{status_mark}]")
+            ratio = mod_score / max_score if max_score > 0 else 0
 
-    # Signals
-    lines.append("\n[訊號]")
+            if ratio >= 0.7:
+                strong_mods.append((name, mod_score, max_score, interp))
+            elif ratio >= 0.4:
+                neutral_mods.append((name, mod_score, max_score, interp))
+            else:
+                weak_mods.append((name, mod_score, max_score, interp))
+
+    # === 2. 核心信號 ===
+    lines.append("")
+    lines.append("【核心信號】")
+
+    if strong_mods:
+        lines.append("  強: " + " | ".join([f"{n} {m}/{Mx}" for n, m, Mx, _ in strong_mods]))
+        for _, _, _, interp in strong_mods:
+            lines.append(f"      {interp}")
+
+    if neutral_mods:
+        lines.append("  中: " + " | ".join([f"{n} {m}/{Mx}" for n, m, Mx, _ in neutral_mods]))
+        for _, _, _, interp in neutral_mods:
+            lines.append(f"      {interp}")
+
+    if weak_mods:
+        lines.append("  弱: " + " | ".join([f"{n} {m}/{Mx}" for n, m, Mx, _ in weak_mods]))
+        for _, _, _, interp in weak_mods:
+            lines.append(f"      {interp}")
+
+    # === 3. 技術解讀 ===
+    lines.append("")
+    lines.append("【技術解讀】")
+
+    # 收集所有訊號
     all_signals = []
-    for _, _, data in modules:
+    for _, _, data, _, _ in modules_info:
         if data and data.get("signals"):
             all_signals.extend(data["signals"])
 
-    for signal in all_signals[:8]:
-        lines.append(f"  * {signal}")
+    # 價格型態判斷
+    price_trend = "盤整"
+    if len(all_signals) >= 3:
+        price_trend = "偏多整理"
+    if any("triangle" in s.lower() for s in all_signals):
+        price_trend = "三角形整理"
+    if any("higher low" in s.lower() for s in all_signals):
+        price_trend = "多頭整理 (支撐墊高)"
+    if any("volume spike" in s.lower() and "absorbed" in s.lower() for s in all_signals):
+        price_trend = "吸籌完成即將突破"
 
-    # Warnings
-    if result.warnings:
-        lines.append("\n[警告]")
-        for warning in result.warnings:
-            lines.append(f"  ! {warning}")
+    lines.append(f"  型態: {price_trend}")
+
+    vol_signals = [s for s in all_signals if "volume" in s.lower()]
+    if vol_signals:
+        lines.append(f"  成交量: {vol_signals[0][:40]}")
+    else:
+        lines.append("  成交量: 無明顯放量")
+
+    # === 詳細模式：價格目標與支撐 ===
+    if detailed:
+        lines.append("")
+        lines.append("【價格預測】")
+
+        # 從模組數據中提取關鍵價位
+        # 嘗試從 absorption 模組獲取支撐位
+        if result.absorption:
+            # 嘗試找到近期高點和支撐
+            lines.append("  近期高點: (需從股價數據計算)")
+            lines.append("  支撐位: (需從技術分析取得)")
+
+        # 從 time_projection 模組獲取時間窗口
+        if result.time_projection:
+            window = result.projected_breakout_window
+            if window:
+                lines.append(f"  突破窗口: {window}")
+            days = result.days_to_window
+            if days is not None:
+                lines.append(f"  距窗口: {days} 天")
+
+        # 顯示波浪位置
+        if result.wave_phase:
+            wave_zh = {
+                "wave1": "第1浪",
+                "wave2": "第2浪",
+                "wave3": "第3浪 (主升浪)",
+                "wave4": "第4浪",
+                "wave5": "第5浪",
+                "wave_a": "A浪",
+                "wave_b": "B浪",
+                "wave_c": "C浪",
+            }.get(result.wave_phase, result.wave_phase)
+            lines.append(f"  波浪位置: {wave_zh}")
+
+        # 費波那契回撤
+        if result.fib_retracement:
+            lines.append(f"  費波回撤: {result.fib_retracement:.1f}%")
+
+    # === 4. 操作建議 ===
+    lines.append("")
+    lines.append("【操作建議】")
+
+    # 根據狀態給出不同建議
+    if status_en == "PRE-MARKUP":
+        lines.append("  入場: 突破高點 + 成交量放大 1.5x")
+        lines.append("  停損: 跌破近 5 日低點")
+        lines.append("  目標: +8% / +15%")
+        lines.append("  RR=1:3 可考慮分批進場")
+
+    elif status_en == "SIAP":
+        lines.append("  入場: 等布林擠壓 + 放量突破")
+        lines.append("  停損: 跌破近 5 日低點")
+        lines.append("  目標: +10% / +20%")
+        lines.append("  RR=1:2 接近突破，待確認")
+
+    elif status_en == "WATCHLIST":
+        lines.append("  入場: 暫不進場")
+        lines.append("  觀察: 等待整理完成 + 布林擠壓")
+        lines.append("  加入自選觀察")
+
+    else:  # SKIP
+        lines.append("  入場: 不建議")
+        lines.append("  建議: 尋找其他標的")
+        lines.append("  跳過")
+
+    # === 5. 模組分數 ===
+    lines.append("")
+    lines.append("【模組分數】")
+    for _, name, data, max_score, _ in modules_info:
+        if data:
+            mod_score = data.get("score", 0)
+            bar = create_progress_bar(mod_score, max_score, 10)
+            status_mark = "✓" if data.get("status", False) else " "
+            lines.append(f"  {name:<8} [{bar}] {mod_score:>4.0f}/{max_score:.0f} {status_mark}")
 
     return "\n".join(lines)
 
 
-def create_screen_table(results: list[dict], title: str) -> str:
+def create_screen_table(results: list[ScreenResultDict], title: str) -> str:
     """Create a formatted screening results output."""
     lines = [create_header("股票篩選", ""), ""]
     lines.append(f"{title}")
@@ -257,7 +487,7 @@ def create_screen_table(results: list[dict], title: str) -> str:
     return "\n".join(lines)
 
 
-def create_compare_table(results: list[dict]) -> str:
+def create_compare_table(results: list[CompareResultDict]) -> str:
     """Create a formatted stock comparison output."""
     lines = [create_header("股票比較", ""), ""]
 
@@ -280,9 +510,16 @@ def create_compare_table(results: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def create_forecast_table(ticker: str, current: float, target: float,
-                          support: float, resistance: float,
-                          confidence: float, days: int, chart_path: str = None) -> str:
+def create_forecast_table(
+    ticker: str,
+    current: float,
+    target: float,
+    support: float,
+    resistance: float,
+    confidence: float,
+    days: int,
+    chart_path: str | None = None,
+) -> str:
     """Create a formatted forecast output."""
     change_pct = (target - current) / current * 100
     trend = "上漲" if change_pct > 0 else "下跌" if change_pct < 0 else "盤整"
@@ -311,10 +548,18 @@ def create_forecast_table(ticker: str, current: float, target: float,
     return "\n".join(lines)
 
 
-def create_index_table(name: str, index_name: str, price: float, change: float,
-                       change_pct: float, day_low: float, day_high: float,
-                       week_52_low: float, week_52_high: float,
-                       chart_path: str = None) -> str:
+def create_index_table(
+    name: str,
+    index_name: str,
+    price: float,
+    change: float,
+    change_pct: float,
+    day_low: float,
+    day_high: float,
+    week_52_low: float,
+    week_52_high: float,
+    chart_path: str | None = None,
+) -> str:
     """Create a formatted index output."""
     change_sign = "+" if change >= 0 else ""
     trend_icon = get_trend_icon(change)

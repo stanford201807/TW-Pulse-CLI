@@ -14,12 +14,12 @@ def get_logger(
 ) -> logging.Logger:
     """
     Get a configured logger instance.
-    
+
     Args:
         name: Logger name (usually __name__)
         level: Logging level
         log_file: Optional file path for file logging
-        
+
     Returns:
         Configured logger instance
     """

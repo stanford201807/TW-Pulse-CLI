@@ -37,11 +37,11 @@ import pandas as pd
 project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from pulse.core.sapta.ml.data_loader import SaptaDataLoader
-from pulse.core.sapta.ml.labeling import LabeledSample, SaptaLabeler
-from pulse.core.sapta.ml.trainer import SaptaTrainer
-from pulse.core.sapta.models import MLModelInfo, SaptaConfig
-from pulse.core.sapta.modules import (
+from pulse.core.sapta.ml.data_loader import SaptaDataLoader  # noqa: E402
+from pulse.core.sapta.ml.labeling import LabeledSample, SaptaLabeler  # noqa: E402
+from pulse.core.sapta.ml.trainer import SaptaTrainer  # noqa: E402
+from pulse.core.sapta.models import SaptaConfig  # noqa: E402
+from pulse.core.sapta.modules import (  # noqa: E402
     AntiDistributionModule,
     BBSqueezeModule,
     CompressionModule,
@@ -49,7 +49,7 @@ from pulse.core.sapta.modules import (
     SupplyAbsorptionModule,
     TimeProjectionModule,
 )
-from pulse.utils.logger import get_logger
+from pulse.utils.logger import get_logger  # noqa: E402
 
 log = get_logger(__name__)
 
@@ -197,7 +197,6 @@ async def load_stock_data_concurrent(
     workers: int = 4,
 ) -> dict[str, pd.DataFrame]:
     """Load stock data concurrently using asyncio."""
-    import aiohttp
     from asyncio import Semaphore
 
     semaphore = Semaphore(workers)
@@ -508,7 +507,7 @@ Examples:
 
     # Get tickers
     all_tickers = loader.get_all_tickers()
-    print(f"\n[Data Loading]")
+    print("\n[Data Loading]")
     print(f"  Available stocks: {len(all_tickers)}")
     print(f"  Loading: {min(config.stocks, len(all_tickers))} stocks...")
 
@@ -584,7 +583,7 @@ Examples:
 
     # Calculate label statistics
     label_stats = calculate_label_stats(all_samples)
-    print(f"\n[Label Distribution]")
+    print("\n[Label Distribution]")
     print(f"  Total Samples:   {label_stats['total_samples']}")
     print(f"  Positive (hit):  {label_stats['positive_samples']} ({label_stats['hit_rate']:.1f}%)")
     print(
@@ -624,15 +623,15 @@ Examples:
     print("Training Complete!")
     print("=" * 70)
 
-    print(f"\n[Model Files]")
+    print("\n[Model Files]")
     print(f"  Model:     {result.model_path}")
     print(f"  Thresholds: {result.thresholds_path}")
 
-    print(f"\n[Metrics]")
+    print("\n[Metrics]")
     for metric, value in result.metrics.items():
         print(f"  {metric}: {value:.4f}")
 
-    print(f"\n[Learned Thresholds]")
+    print("\n[Learned Thresholds]")
     print(f"  PRE-MARKUP:  >= {result.model_info.threshold_pre_markup:.1f}")
     print(f"  SIAP:        >= {result.model_info.threshold_siap:.1f}")
     print(f"  WATCHLIST:   >= {result.model_info.threshold_watchlist:.1f}")
@@ -640,7 +639,7 @@ Examples:
     # Feature importance
     sorted_importance = sorted(result.feature_importance.items(), key=lambda x: x[1], reverse=True)
 
-    print(f"\n[Top 15 Important Features]")
+    print("\n[Top 15 Important Features]")
     for name, importance in sorted_importance[:15]:
         print(f"  {name}: {importance:.4f}")
 
@@ -666,7 +665,7 @@ Examples:
     )
 
     report_path = save_training_report(report, output_dir)
-    print(f"\n[Report]")
+    print("\n[Report]")
     print(f"  Saved: {report_path}")
 
     # Verify model can be loaded
@@ -674,8 +673,8 @@ Examples:
         import joblib
 
         test_model = joblib.load(result.model_path)
-        print(f"\n[Verification]")
-        print(f"  Model loaded successfully")
+        print("\n[Verification]")
+        print("  Model loaded successfully")
         # feature_names_in_ may not be set if X had non-string feature names
         if hasattr(test_model, "feature_names_in_") and test_model.feature_names_in_ is not None:
             print(f"  Feature count: {len(test_model.feature_names_in_)}")
