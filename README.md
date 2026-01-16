@@ -1,11 +1,11 @@
-# Pulse CLI
+# TW-Pulse-CLI
 
 <div align="center">
 
-![Pulse CLI](https://img.shields.io/badge/Pulse-CLI-58a6ff?style=for-the-badge&logo=python&logoColor=white)
+![TW-Pulse-CLI](https://img.shields.io/badge/TW-Pulse--CLI-58a6ff?style=for-the-badge&logo=python&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.11+-3776ab?style=for-the-badge&logo=python&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Status](https://img.shields.io/badge/Status-Alpha-orange?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Beta-yellow?style=for-the-badge)
 
 **AI-Powered Taiwan Stock Market Analysis CLI**
 
@@ -13,7 +13,7 @@
 
 [Features](#features) • [Installation](#installation) • [Usage](#usage) • [Commands](#commands) • [SAPTA Engine](#sapta-engine) • [Configuration](#configuration) • [Documentation](docs/)
 
-[![GitHub](https://img.shields.io/badge/GitHub-sukirman1901%2FPulse--CLI-181717?style=flat-square&logo=github)](https://github.com/sukirman1901/Pulse-CLI)
+[![GitHub](https://img.shields.io/badge/GitHub-alingowangxr%2FTW--Pulse--CLI-181717?style=flat-square&logo=github)](https://github.com/alingowangxr/TW-Pulse-CLI)
 
 </div>
 
@@ -21,7 +21,7 @@
 
 ## Overview
 
-**Pulse CLI** 是一個強大的終端使用者介面 (TUI) 應用程式，用於台灣股市分析。它整合了：
+**TW-Pulse-CLI** 是一個強大的終端使用者介面 (TUI) 應用程式，用於台灣股市分析。它整合了：
 
 - **即時數據** 來自 FinMind (主要), Yahoo Finance (備用)
 - **技術分析** (RSI, MACD, 布林通道, 支撐/壓力)
@@ -78,8 +78,8 @@ Technical Indicators        Fundamental Metrics       SAPTA Modules
 
 ```bash
 # Clone repository
-git clone https://github.com/sukirman1901/Pulse-CLI.git
-cd Pulse-CLI
+git clone https://github.com/alingowangxr/TW-Pulse-CLI.git
+cd TW-Pulse-CLI
 
 # Create virtual environment (recommended)
 python -m venv .venv
@@ -322,6 +322,15 @@ Chart saved: charts/2454_forecast_20240115.png
 ```
 /screen oversold --universe=all       # All Taiwan stocks
 ```
+
+**Export to CSV:**
+
+```
+/screen oversold --export             # Export to data/reports/screen_YYYYMMDD_HHMMSS.csv
+/screen rsi<30 --export=my_results.csv  # Export with custom filename
+```
+
+The CSV export includes 18 columns: ticker, name, sector, price, change_percent, volume, rsi_14, macd, sma_20, sma_50, pe_ratio, pb_ratio, roe, dividend_yield, market_cap, score, signals.
 
 #### `/plan <TICKER> [account_size]` - Trading Plan
 
@@ -623,7 +632,7 @@ Supported indices:
 ## Project Structure
 
 ```
-pulse-cli/
+tw-pulse-cli/
 ├── pulse/
 │   ├── __init__.py
 │   ├── cli/                      # TUI Application
@@ -651,7 +660,7 @@ pulse-cli/
 │   │   │   ├── __init__.py
 │   │   │   ├── yfinance.py       # Yahoo Finance fetcher
 │   │   │   ├── finmind_data.py   # FinMind API integration
-│   │   │   ├── stockbit.py       # Stockbit integration (deprecated)
+│   │   │   ├── fugle.py          # Fugle API integration
 │   │   │   └── cache.py          # Disk cache
 │   │   │
 │   │   ├── analysis/             # Analysis Modules
@@ -702,11 +711,12 @@ pulse-cli/
 │   └── pulse.yaml                # Configuration file
 │
 ├── data/
-│   ├── tw_tickers.json           # Taiwan stock tickers
+│   ├── tw_tickers.json           # Taiwan stock tickers (5,868 stocks)
 │   ├── twse_tickers.json         # TWSE listed stocks
 │   ├── otc_tickers.json          # OTC stocks
 │   ├── cache/                    # Disk cache
-│   └── logs/                     # Log files
+│   ├── logs/                     # Log files
+│   └── reports/                  # Export reports (CSV)
 │
 ├── docs/                         # Documentation
 │   ├── SAPTA_ALGORITHM.md        # SAPTA algorithm details
@@ -730,8 +740,8 @@ pulse-cli/
 
 ```bash
 # Clone and install
-git clone https://github.com/yourusername/pulse-cli.git
-cd pulse-cli
+git clone https://github.com/alingowangxr/TW-Pulse-CLI.git
+cd TW-Pulse-CLI
 
 # Create venv
 python -m venv .venv
@@ -914,6 +924,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with :heart: for Taiwan Stock Market**
 
-[Report Bug](https://github.com/sukirman1901/Pulse-CLI/issues) • [Request Feature](https://github.com/sukirman1901/Pulse-CLI/issues)
+[Report Bug](https://github.com/alingowangxr/TW-Pulse-CLI/issues) • [Request Feature](https://github.com/alingowangxr/TW-Pulse-CLI/issues)
 
 </div>

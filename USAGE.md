@@ -1,9 +1,10 @@
-# Pulse-CLI 使用說明
+# TW-Pulse-CLI 使用說明
 
 > 台灣股票市場分析 CLI 工具 (Taiwan Stock Market Analysis CLI)
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Stars](https://img.shields.io/github/stars/alingowangxr/TW-Pulse-CLI)](https://github.com/alingowangxr/TW-Pulse-CLI)
 
 ---
 
@@ -22,7 +23,7 @@
 
 ## 簡介
 
-Pulse-CLI 是一個專為台灣股票市場設計的 AI 驅動命令列分析工具，提供：
+TW-Pulse-CLI 是一個專為台灣股票市場設計的 AI 驅動命令列分析工具，提供：
 
 - **技術分析** - RSI、MACD、均線、布林通道、ATR 等指標
 - **基本面分析** - PER、PBR、ROE、EPS、股利資料
@@ -45,8 +46,8 @@ Pulse-CLI 是一個專為台灣股票市場設計的 AI 驅動命令列分析工
 
 ```bash
 # 1. 複製專案
-git clone https://github.com/yourusername/Pulse-CLI.git
-cd Pulse-CLI
+git clone https://github.com/alingowangxr/TW-Pulse-CLI.git
+cd TW-Pulse-CLI
 
 # 2. 建立虛擬環境
 python -m venv .venv
@@ -163,6 +164,14 @@ python -m pulse.cli.app
 /screen bullish --universe=midcap    # 中型股
 /screen momentum --universe=all      # 全部
 ```
+
+**匯出 CSV:**
+```bash
+/screen oversold --export             # 自動產生檔名
+/screen rsi<30 --export=my_results.csv  # 自訂檔名
+```
+
+CSV 會儲存到 `data/reports/` 目錄，包含 18 個欄位：ticker, name, sector, price, change_percent, volume, rsi_14, macd, sma_20, sma_50, pe_ratio, pb_ratio, roe, dividend_yield, market_cap, score, signals。
 
 ### 系統命令
 
@@ -319,7 +328,7 @@ PULSE_AI__DEFAULT_MODEL=gemini/gemini-2.0-flash
 ## 程式架構
 
 ```
-Pulse-CLI/
+TW-Pulse-CLI/
 ├── pulse/
 │   ├── ai/                    # AI 整合 (LiteLLM)
 │   │   ├── client.py          # AI 客戶端
@@ -327,7 +336,10 @@ Pulse-CLI/
 │   ├── cli/
 │   │   ├── app.py             # Textual TUI 應用
 │   │   └── commands/
-│   │       └── registry.py    # 命令註冊中心
+│   │       ├── registry.py    # 命令註冊中心
+│   │       ├── analysis.py    # 分析命令
+│   │       ├── screening.py   # 篩選命令 (含 CSV 匯出)
+│   │       └── advanced.py    # 進階命令
 │   ├── core/
 │   │   ├── config.py          # 設定管理
 │   │   ├── smart_agent.py     # 智能 Agent
@@ -340,18 +352,21 @@ Pulse-CLI/
 │   │   │   └── institutional_flow.py
 │   │   ├── data/              # 數據層
 │   │   │   ├── yfinance.py
-│   │   │   └── finmind_data.py
+│   │   │   ├── finmind_data.py
+│   │   │   └── fugle.py       # Fugle 整合
 │   │   └── sapta/             # SAPTA 引擎
 │   │       ├── engine.py
-│   │       └── modules/       # 6 個分析模組
+│   │       ├── modules/       # 6 個分析模組
+│   │       └── ml/            # 機器學習
 │   └── utils/
 │       ├── constants.py       # 股票清單
 │       └── formatters.py      # 輸出格式化
 ├── config/
 │   └── pulse.yaml             # 配置文件
 ├── data/
-│   ├── tw_tickers.json        # 股票清單
-│   └── cache/                 # 快取目錄
+│   ├── tw_tickers.json        # 股票清單 (5,868 檔)
+│   ├── cache/                 # 快取目錄
+│   └── reports/               # 匯出報告 (CSV)
 └── .env.example               # 環境變數範例
 ```
 
@@ -450,4 +465,4 @@ pytest --cov=pulse --cov-report=term-missing
 
 ---
 
-**Pulse-CLI 台灣股票市場分析工具**
+**TW-Pulse-CLI 台灣股票市場分析工具**
