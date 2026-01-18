@@ -1,8 +1,9 @@
 """Retry utilities for API calls with exponential backoff."""
 
 import asyncio
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from pulse.utils.logger import get_logger
 

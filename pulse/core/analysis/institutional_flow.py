@@ -1,8 +1,7 @@
 """Institutional investor flow analysis."""
 
-from typing import Any
 from datetime import datetime, timedelta
-import pandas as pd
+from typing import Any
 
 from pulse.core.data.stock_data_provider import StockDataProvider
 from pulse.core.models import SignalType
@@ -52,32 +51,28 @@ class InstitutionalFlowAnalyzer:
             )
             return None
 
-        # Process the institutional data (simplified for now)
-        # FinMind data typically includes columns like 'date', 'stock_id', 'buy', 'sell', 'deal', 'Foreign_Investor_Buy', 'Foreign_Investor_Sell', etc.
+        # Process the institutional data
+        # FinMind returns data in "long format" with columns: date, stock_id, name, buy, sell
+        # where 'name' can be: Foreign_Investor, Investment_Trust, Dealer_self, Dealer_Hedging, Foreign_Dealer_Self
 
-        # Calculate net buying/selling for different institutional types
-        # Ensure the columns exist before attempting to access them
-        institutional_data_df["Foreign_Investor_Net"] = institutional_data_df.get(
-            "Foreign_Investor_Buy", 0
-        ) - institutional_data_df.get("Foreign_Investor_Sell", 0)
-        institutional_data_df["Investment_Trust_Net"] = institutional_data_df.get(
-            "Investment_Trust_Buy", 0
-        ) - institutional_data_df.get("Investment_Trust_Sell", 0)
-        institutional_data_df["Dealer_Net"] = institutional_data_df.get(
-            "Dealer_Self_Buy", 0
-        ) - institutional_data_df.get("Dealer_Self_Sell", 0)
-        institutional_data_df["Dealer_Hedge_Net"] = institutional_data_df.get(
-            "Dealer_Hedge_Buy", 0
-        ) - institutional_data_df.get("Dealer_Hedge_Sell", 0)
+        # Pivot to calculate net for each institutional type
+        # Group by name and sum buy/sell
+        summary = (
+            institutional_data_df.groupby("name").agg({"buy": "sum", "sell": "sum"}).reset_index()
+        )
+        summary["net"] = summary["buy"] - summary["sell"]
 
-        # Take the sum over the analysis period
-        total_foreign_net = institutional_data_df["Foreign_Investor_Net"].sum()
-        total_investment_trust_net = institutional_data_df["Investment_Trust_Net"].sum()
-        total_dealer_net = (
-            institutional_data_df["Dealer_Net"] + institutional_data_df["Dealer_Hedge_Net"]
-        ).sum()
+        # Create a lookup dictionary
+        net_by_name = dict(zip(summary["name"], summary["net"]))
 
-        # Determine overall institutional net flow
+        # Map to our analysis
+        total_foreign_net = net_by_name.get("Foreign_Investor", 0)
+        total_investment_trust_net = net_by_name.get("Investment_Trust", 0)
+        total_dealer_self_net = net_by_name.get("Dealer_self", 0)
+        total_dealer_hedge_net = net_by_name.get("Dealer_Hedging", 0)
+        total_dealer_net = total_dealer_self_net + total_dealer_hedge_net
+
+        # Overall net flow
         overall_net_flow = total_foreign_net + total_investment_trust_net + total_dealer_net
 
         analysis = {
@@ -115,7 +110,9 @@ class InstitutionalFlowAnalyzer:
                 f"{ICONS['red']} 機構法人總計淨賣超 {analysis['overall_institutional_net_flow_formatted']} (過去 {days} 個交易日)"
             )
         else:
-            analysis["insights"].append(f"{ICONS['white']} 機構法人買賣超不明顯 (過去 {days} 個交易日)")
+            analysis["insights"].append(
+                f"{ICONS['white']} 機構法人買賣超不明顯 (過去 {days} 個交易日)"
+            )
 
         if total_foreign_net > 0:
             analysis["insights"].append(
@@ -136,9 +133,13 @@ class InstitutionalFlowAnalyzer:
             )
 
         if total_dealer_net > 0:
-            analysis["insights"].append(f"{ICONS['green']} 自營商淨買超 {analysis['dealer_net_formatted']}")
+            analysis["insights"].append(
+                f"{ICONS['green']} 自營商淨買超 {analysis['dealer_net_formatted']}"
+            )
         elif total_dealer_net < 0:
-            analysis["insights"].append(f"{ICONS['red']} 自營商淨賣超 {analysis['dealer_net_formatted']}")
+            analysis["insights"].append(
+                f"{ICONS['red']} 自營商淨賣超 {analysis['dealer_net_formatted']}"
+            )
 
         return analysis
 

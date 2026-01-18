@@ -20,12 +20,12 @@ from pulse.core.sapta.modules.base import BaseModule
 class SupplyAbsorptionModule(BaseModule):
     """
     Detect supply absorption pattern.
-    
+
     Key signals:
     1. Volume spike without price breakdown
     2. Higher lows forming (demand absorbing supply)
     3. Close in upper half of candle range
-    
+
     Max Score: 20
     """
 
@@ -40,7 +40,7 @@ class SupplyAbsorptionModule(BaseModule):
     ) -> ModuleScore:
         """
         Analyze supply absorption.
-        
+
         Args:
             df: OHLCV DataFrame
             lookback: Number of recent candles to analyze
@@ -56,27 +56,27 @@ class SupplyAbsorptionModule(BaseModule):
         recent = df.tail(lookback)
 
         # Calculate average volume (50-day)
-        avg_volume = df['volume'].rolling(50).mean()
+        avg_volume = df["volume"].rolling(50).mean()
 
         # === Check 1: Volume spike absorbed ===
         # Find if there was a volume spike and price held
-        recent_max_vol_idx = recent['volume'].idxmax()
-        spike_volume = recent.loc[recent_max_vol_idx, 'volume']
+        recent_max_vol_idx = recent["volume"].idxmax()
+        spike_volume = recent.loc[recent_max_vol_idx, "volume"]
         avg_vol_at_spike = avg_volume.loc[recent_max_vol_idx]
 
         volume_ratio = spike_volume / avg_vol_at_spike if avg_vol_at_spike > 0 else 0
-        features['volume_spike_ratio'] = float(volume_ratio)
+        features["volume_spike_ratio"] = float(volume_ratio)
 
         if volume_ratio >= volume_spike_threshold:
             # Check if price held after spike (no new low)
             spike_pos = df.index.get_loc(recent_max_vol_idx)
             after_spike = df.iloc[spike_pos:]
 
-            spike_low = df.loc[recent_max_vol_idx, 'low']
-            subsequent_low = after_spike['low'].min()
+            spike_low = df.loc[recent_max_vol_idx, "low"]
+            subsequent_low = after_spike["low"].min()
 
             price_held = subsequent_low >= spike_low * 0.99  # Allow 1% tolerance
-            features['price_held_after_spike'] = float(price_held)
+            features["price_held_after_spike"] = float(price_held)
 
             if price_held:
                 score += 8
@@ -86,9 +86,9 @@ class SupplyAbsorptionModule(BaseModule):
                 signals.append(f"Volume spike {volume_ratio:.1f}x but price broke down")
 
         # === Check 2: Higher lows forming ===
-        lows = recent['low'].values
+        lows = recent["low"].values
         higher_lows = self._count_higher_lows(lows)
-        features['higher_lows_count'] = int(higher_lows)
+        features["higher_lows_count"] = int(higher_lows)
 
         if higher_lows >= 3:
             score += 6
@@ -102,13 +102,13 @@ class SupplyAbsorptionModule(BaseModule):
         close_strengths = []
         for i in range(-min(5, len(recent)), 0):
             candle = df.iloc[i]
-            candle_range = candle['high'] - candle['low']
+            candle_range = candle["high"] - candle["low"]
             if candle_range > 0:
-                close_pos = (candle['close'] - candle['low']) / candle_range
+                close_pos = (candle["close"] - candle["low"]) / candle_range
                 close_strengths.append(close_pos)
 
         avg_close_strength = np.mean(close_strengths) if close_strengths else 0.5
-        features['avg_close_strength'] = float(avg_close_strength)
+        features["avg_close_strength"] = float(avg_close_strength)
 
         if avg_close_strength >= 0.6:
             score += 6
@@ -121,17 +121,17 @@ class SupplyAbsorptionModule(BaseModule):
         # Distribution = high volume + weak close
         dist_candles = 0
         for i in range(-lookback, 0):
-            vol = df['volume'].iloc[i]
+            vol = df["volume"].iloc[i]
             avg_vol = avg_volume.iloc[i]
             if vol > avg_vol * 1.5:
                 candle = df.iloc[i]
-                rng = candle['high'] - candle['low']
+                rng = candle["high"] - candle["low"]
                 if rng > 0:
-                    close_pos = (candle['close'] - candle['low']) / rng
+                    close_pos = (candle["close"] - candle["low"]) / rng
                     if close_pos < 0.3:  # Weak close
                         dist_candles += 1
 
-        features['distribution_candles'] = int(dist_candles)
+        features["distribution_candles"] = int(dist_candles)
 
         if dist_candles == 0:
             # No distribution detected - bonus
@@ -152,7 +152,7 @@ class SupplyAbsorptionModule(BaseModule):
         current_count = 0
 
         for i in range(1, len(lows)):
-            if lows[i] > lows[i-1]:
+            if lows[i] > lows[i - 1]:
                 current_count += 1
                 max_count = max(max_count, current_count)
             else:

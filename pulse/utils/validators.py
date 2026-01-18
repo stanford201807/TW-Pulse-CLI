@@ -124,9 +124,7 @@ def validate_period(period: str) -> tuple[bool, str]:
     Returns:
         Tuple of (is_valid, normalized_period or error_message)
     """
-    valid_periods = {
-        "1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"
-    }
+    valid_periods = {"1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"}
 
     normalized = period.lower().strip()
 
@@ -147,9 +145,22 @@ def validate_indicator(indicator: str) -> tuple[bool, str]:
         Tuple of (is_valid, normalized_indicator or error_message)
     """
     valid_indicators = {
-        "rsi", "macd", "sma", "ema", "bb", "bollinger",
-        "stoch", "stochastic", "atr", "adx", "obv",
-        "vwap", "mfi", "cci", "williams", "roc",
+        "rsi",
+        "macd",
+        "sma",
+        "ema",
+        "bb",
+        "bollinger",
+        "stoch",
+        "stochastic",
+        "atr",
+        "adx",
+        "obv",
+        "vwap",
+        "mfi",
+        "cci",
+        "williams",
+        "roc",
     }
 
     normalized = indicator.lower().strip()
@@ -242,10 +253,12 @@ def parse_screening_criteria(criteria: str) -> tuple[bool, dict | str]:
         else:
             value = float(value_str)
 
-        parsed["conditions"].append({
-            "indicator": indicator,
-            "operator": operator,
-            "value": value,
-        })
+        parsed["conditions"].append(
+            {
+                "indicator": indicator,
+                "operator": operator,
+                "value": value,
+            }
+        )
 
     return True, parsed

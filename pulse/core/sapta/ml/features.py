@@ -13,7 +13,7 @@ from pulse.core.sapta.models import ModuleScore, SaptaResult
 class SaptaFeatureExtractor:
     """
     Extract features from SAPTA module scores for ML training.
-    
+
     Features are organized by module and include both raw scores
     and derived metrics useful for prediction.
     """
@@ -27,7 +27,6 @@ class SaptaFeatureExtractor:
         "absorption_price_held",
         "absorption_higher_lows_count",
         "absorption_avg_close_strength",
-
         # Compression features
         "compression_score",
         "compression_score_pct",
@@ -36,7 +35,6 @@ class SaptaFeatureExtractor:
         "compression_higher_lows",
         "compression_lower_highs",
         "compression_avg_body_ratio",
-
         # BB Squeeze features
         "bb_squeeze_score",
         "bb_squeeze_score_pct",
@@ -44,7 +42,6 @@ class SaptaFeatureExtractor:
         "bb_squeeze_bb_width_percentile",
         "bb_squeeze_squeeze_duration",
         "bb_squeeze_price_position_in_bb",
-
         # Elliott features
         "elliott_score",
         "elliott_score_pct",
@@ -53,21 +50,18 @@ class SaptaFeatureExtractor:
         "elliott_abc_pattern",
         "elliott_rule_violations",
         "elliott_rsi_divergence",
-
         # Time Projection features
         "time_projection_score",
         "time_projection_score_pct",
         "time_projection_days_since_low",
         "time_projection_in_fib_window",
         "time_projection_lunar_phase",
-
         # Anti-Distribution features
         "anti_distribution_score",
         "anti_distribution_score_pct",
         "anti_distribution_distribution_candles",
         "anti_distribution_false_breakout",
         "anti_distribution_obv_divergence",
-
         # Aggregate features
         "total_score",
         "weighted_score",
@@ -81,10 +75,10 @@ class SaptaFeatureExtractor:
     def extract_from_result(self, result: SaptaResult) -> dict[str, float]:
         """
         Extract feature dict from a SaptaResult.
-        
+
         Args:
             result: SAPTA analysis result
-            
+
         Returns:
             Dictionary of feature_name -> value
         """
@@ -136,10 +130,10 @@ class SaptaFeatureExtractor:
     ) -> dict[str, float]:
         """
         Extract features directly from module scores.
-        
+
         Args:
             module_scores: Dict of module_name -> ModuleScore
-            
+
         Returns:
             Dictionary of feature_name -> value
         """
@@ -167,10 +161,10 @@ class SaptaFeatureExtractor:
     def to_vector(self, features: dict[str, float]) -> np.ndarray:
         """
         Convert feature dict to numpy array in consistent order.
-        
+
         Args:
             features: Feature dictionary
-            
+
         Returns:
             Numpy array of features
         """
@@ -179,10 +173,10 @@ class SaptaFeatureExtractor:
     def to_dataframe(self, feature_list: list[dict[str, float]]) -> pd.DataFrame:
         """
         Convert list of feature dicts to DataFrame.
-        
+
         Args:
             feature_list: List of feature dictionaries
-            
+
         Returns:
             DataFrame with consistent columns
         """

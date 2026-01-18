@@ -1,14 +1,12 @@
 """Fugle Market Data provider for Taiwan stocks (third-tier fallback)."""
 
 import base64
-from datetime import datetime
-from typing import Any, Optional
 import threading
+from typing import Any
 
-import pandas as pd
 import httpx
 
-from pulse.core.models import OHLCV, StockData
+from pulse.core.models import StockData
 from pulse.utils.logger import get_logger
 
 log = get_logger(__name__)
@@ -48,7 +46,7 @@ class FugleFetcher:
         """
         # New Fugle API keys are base64 encoded, use as-is
         self.api_key = api_key
-        self._client: Optional[httpx.Client] = None
+        self._client: httpx.Client | None = None
         self._lock = threading.Lock()
 
     def _get_client(self) -> httpx.Client:
@@ -90,7 +88,7 @@ class FugleFetcher:
     def _make_request(
         self,
         endpoint: str,
-        params: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         """
         Make HTTP request to Fugle API.
@@ -137,7 +135,7 @@ class FugleFetcher:
         ticker: str,
         start_date: str = "",
         end_date: str = "",
-    ) -> Optional[StockData]:
+    ) -> StockData | None:
         """
         Fetch stock data for a ticker from Fugle.
 
@@ -212,7 +210,7 @@ class FugleFetcher:
         index_name: str,
         start_date: str = "",
         end_date: str = "",
-    ) -> Optional[StockData]:
+    ) -> StockData | None:
         """
         Fetch market index data from Fugle.
 

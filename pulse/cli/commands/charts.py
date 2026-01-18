@@ -1,6 +1,5 @@
 """Chart commands: chart, forecast, taiex."""
 
-import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

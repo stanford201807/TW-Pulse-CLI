@@ -1,15 +1,13 @@
 """Centralized data provider to fetch stock data from FinMind (primary), yfinance (fallback), or Fugle (tertiary)."""
 
-from typing import List, Optional
-
 import pandas as pd
 
-from pulse.core.models import StockData, FundamentalData
-from pulse.utils.logger import get_logger
-from pulse.utils.error_handler import format_error_response, RateLimitError
 from pulse.core.data.finmind_data import FinMindFetcher
-from pulse.core.data.yfinance import YFinanceFetcher
 from pulse.core.data.fugle import FugleFetcher
+from pulse.core.data.yfinance import YFinanceFetcher
+from pulse.core.models import FundamentalData, StockData
+from pulse.utils.error_handler import RateLimitError
+from pulse.utils.logger import get_logger
 
 log = get_logger(__name__)
 
@@ -38,8 +36,8 @@ class StockDataProvider:
         self,
         ticker: str,
         period: str = "3mo",
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
     ) -> StockData | None:
         """
         Fetches stock data for a ticker.
@@ -125,8 +123,8 @@ class StockDataProvider:
     async def fetch_fundamentals(
         self,
         ticker: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
     ) -> FundamentalData | None:
         """
         Fetches fundamental data for a ticker.
@@ -153,11 +151,11 @@ class StockDataProvider:
 
     async def fetch_multiple(
         self,
-        tickers: List[str],
+        tickers: list[str],
         period: str = "3mo",
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-    ) -> List[StockData]:
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> list[StockData]:
         """
         Fetches data for multiple tickers.
 
@@ -216,7 +214,7 @@ class StockDataProvider:
             return yfinance_results
 
         # Try Fugle as tertiary fallback
-        log.debug(f"yfinance failed for all stocks, trying Fugle...")
+        log.debug("yfinance failed for all stocks, trying Fugle...")
         if start_date and end_date:
             fugle_results = []
             for ticker in tickers:
@@ -240,15 +238,15 @@ class StockDataProvider:
                 log.debug(f"Fetched {len(fugle_results)} stocks from Fugle (tertiary fallback).")
                 return fugle_results
 
-        log.error(f"Failed to fetch multiple tickers from FinMind, yfinance, and Fugle.")
+        log.error("Failed to fetch multiple tickers from FinMind, yfinance, and Fugle.")
         return []
 
     async def fetch_history(
         self,
         ticker: str,
         period: str = "3mo",
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
     ) -> pd.DataFrame | None:
         """
         Fetches historical data as DataFrame.
@@ -296,8 +294,8 @@ class StockDataProvider:
         self,
         index_name: str,
         period: str = "3mo",
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
     ) -> StockData | None:
         """
         Fetches market index data.
@@ -342,8 +340,8 @@ class StockDataProvider:
     async def fetch_institutional_investors(
         self,
         ticker: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
     ) -> pd.DataFrame | None:
         """
         Fetches institutional investor data.

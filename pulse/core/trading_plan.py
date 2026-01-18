@@ -30,7 +30,7 @@ log = get_logger(__name__)
 class TradingPlanGenerator:
     """
     Generate complete trading plans with TP, SL, and RR calculations.
-    
+
     Usage:
         generator = TradingPlanGenerator()
         plan = await generator.generate("BBCA")
@@ -38,7 +38,7 @@ class TradingPlanGenerator:
     """
 
     # Default settings
-    DEFAULT_RISK_PERCENT = 2.0      # 2% risk per trade
+    DEFAULT_RISK_PERCENT = 2.0  # 2% risk per trade
     DEFAULT_ATR_SL_MULTIPLIER = 1.5  # SL = Entry - (ATR * 1.5)
     DEFAULT_ATR_TP_MULTIPLIER = 2.0  # TP1 = Entry + (ATR * 2.0)
     DEFAULT_ACCOUNT_SIZE = 100_000_000  # Rp 100 juta default
@@ -56,13 +56,13 @@ class TradingPlanGenerator:
     ) -> TradingPlan | None:
         """
         Generate complete trading plan for a ticker.
-        
+
         Args:
             ticker: Stock ticker (e.g., "BBCA")
             entry_price: Custom entry price (None = use current price)
             risk_percent: Risk percentage per trade (default 2%)
             sl_method: Stop loss method ("atr", "support", "percentage", "hybrid")
-            
+
         Returns:
             TradingPlan object or None if data unavailable
         """
@@ -203,13 +203,13 @@ class TradingPlanGenerator:
     ) -> tuple[float, str]:
         """
         Calculate stop loss using multiple methods.
-        
+
         Methods:
         - atr: Entry - (ATR * 1.5) - adapts to volatility
         - support: Below support_1 with buffer - respects key levels
         - percentage: Fixed 3% stop - simple and consistent
         - hybrid: Pick the tightest valid stop loss
-        
+
         Returns:
             Tuple of (stop_loss_price, method_used)
         """
@@ -255,7 +255,7 @@ class TradingPlanGenerator:
     ) -> tuple[float, float | None, float | None]:
         """
         Calculate 3 levels of take profit.
-        
+
         TP1: Conservative - nearest resistance or 1.5x ATR
         TP2: Moderate - resistance 2 or 2.5x ATR
         TP3: Aggressive - 3.5x ATR (extended target)
@@ -276,7 +276,7 @@ class TradingPlanGenerator:
     def _assess_trade_quality(self, rr_ratio: float) -> TradeQuality:
         """
         Assess trade quality based on R:R ratio.
-        
+
         - Excellent: RR >= 3.0 (risk 1 to gain 3+)
         - Good: RR >= 2.0
         - Fair: RR >= 1.5
@@ -347,7 +347,7 @@ class TradingPlanGenerator:
     def _determine_validity(self, atr: float, entry: float) -> TradeValidity:
         """
         Determine trade validity based on volatility.
-        
+
         High volatility = shorter timeframe (intraday)
         Low volatility = longer timeframe (position)
         """
@@ -379,7 +379,9 @@ class TradingPlanGenerator:
             elif 45 <= rsi <= 55:
                 notes.append(f"RSI {rsi:.1f} - Neutral, room to move either way")
             else:
-                notes.append(f"RSI {rsi:.1f} - {'Bullish momentum' if rsi > 55 else 'Bearish pressure'}")
+                notes.append(
+                    f"RSI {rsi:.1f} - {'Bullish momentum' if rsi > 55 else 'Bearish pressure'}"
+                )
 
         # MACD note
         if technical.macd and technical.macd_signal:
@@ -433,7 +435,7 @@ class TradingPlanGenerator:
     ) -> dict[str, Any]:
         """
         Calculate position size based on risk management.
-        
+
         Formula:
         Max Risk Amount = Account Size * Risk Percent
         Risk Per Share = Entry - Stop Loss
@@ -487,16 +489,18 @@ class TradingPlanGenerator:
         if plan.tp3:
             lines.append(f"TP3: Rp {plan.tp3:,.0f} ({plan.tp3_percent:+.2f}%) - Aggressive")
 
-        lines.extend([
-            "",
-            "=== STOP LOSS ===",
-            f"SL: Rp {plan.stop_loss:,.0f} ({plan.stop_loss_percent:.2f}%)",
-            f"Method: {plan.stop_loss_method.title()}",
-            "",
-            "=== RISK/REWARD ===",
-            f"Risk: Rp {plan.risk_amount:,.0f} per share ({abs(plan.stop_loss_percent):.2f}%)",
-            f"Reward (TP1): Rp {plan.reward_tp1:,.0f} ({plan.tp1_percent:.2f}%)",
-        ])
+        lines.extend(
+            [
+                "",
+                "=== STOP LOSS ===",
+                f"SL: Rp {plan.stop_loss:,.0f} ({plan.stop_loss_percent:.2f}%)",
+                f"Method: {plan.stop_loss_method.title()}",
+                "",
+                "=== RISK/REWARD ===",
+                f"Risk: Rp {plan.risk_amount:,.0f} per share ({abs(plan.stop_loss_percent):.2f}%)",
+                f"Reward (TP1): Rp {plan.reward_tp1:,.0f} ({plan.tp1_percent:.2f}%)",
+            ]
+        )
 
         if plan.reward_tp2:
             lines.append(f"Reward (TP2): Rp {plan.reward_tp2:,.0f} ({plan.tp2_percent:.2f}%)")
@@ -510,11 +514,13 @@ class TradingPlanGenerator:
             rr2_quality = self._get_rr_quality_label(plan.rr_ratio_tp2)
             lines.append(f"R:R to TP2: 1:{plan.rr_ratio_tp2:.1f} [{rr2_quality}]")
 
-        lines.extend([
-            "",
-            f"Trade Quality: {plan.trade_quality.value.upper()}",
-            f"Confidence: {plan.confidence}%",
-        ])
+        lines.extend(
+            [
+                "",
+                f"Trade Quality: {plan.trade_quality.value.upper()}",
+                f"Confidence: {plan.confidence}%",
+            ]
+        )
 
         # Position sizing
         if include_position_sizing:
@@ -522,15 +528,17 @@ class TradingPlanGenerator:
             pos = self.calculate_position_size(plan, acc_size)
 
             if "error" not in pos:
-                lines.extend([
-                    "",
-                    f"=== POSITION SIZING ({plan.suggested_risk_percent}% Risk) ===",
-                    f"Account: Rp {pos['account_size']:,.0f}",
-                    f"Max Risk: Rp {pos['max_risk_amount']:,.0f}",
-                    f"Risk/Share: Rp {pos['risk_per_share']:,.0f}",
-                    f"Suggested: {pos['lots']:,} lot ({pos['shares']:,} shares)",
-                    f"Position Value: Rp {pos['position_value']:,.0f} ({pos['position_percent']:.1f}% of account)",
-                ])
+                lines.extend(
+                    [
+                        "",
+                        f"=== POSITION SIZING ({plan.suggested_risk_percent}% Risk) ===",
+                        f"Account: Rp {pos['account_size']:,.0f}",
+                        f"Max Risk: Rp {pos['max_risk_amount']:,.0f}",
+                        f"Risk/Share: Rp {pos['risk_per_share']:,.0f}",
+                        f"Suggested: {pos['lots']:,} lot ({pos['shares']:,} shares)",
+                        f"Position Value: Rp {pos['position_value']:,.0f} ({pos['position_percent']:.1f}% of account)",
+                    ]
+                )
 
         # Notes
         if plan.notes:
@@ -545,10 +553,12 @@ class TradingPlanGenerator:
                 lines.append(step)
 
         # Validity
-        lines.extend([
-            "",
-            f"Validity: {plan.validity.value} Trade",
-        ])
+        lines.extend(
+            [
+                "",
+                f"Validity: {plan.validity.value} Trade",
+            ]
+        )
 
         return "\n".join(lines)
 

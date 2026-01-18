@@ -12,10 +12,10 @@ Components:
 
 Usage:
     from pulse.core.sapta import SaptaEngine
-    
+
     engine = SaptaEngine()
     result = await engine.analyze("BBCA")
-    
+
     print(result.status)  # PRE-MARKUP, SIAP, WATCHLIST, ABAIKAN
     print(result.score)   # 0-100
     print(result.notes)   # Explainability

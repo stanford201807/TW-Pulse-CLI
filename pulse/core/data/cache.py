@@ -26,7 +26,7 @@ class DataCache:
     ):
         """
         Initialize data cache.
-        
+
         Args:
             cache_dir: Cache directory path
             ttl: Default TTL in seconds
@@ -50,10 +50,10 @@ class DataCache:
     def get(self, key: str) -> Any | None:
         """
         Get value from cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached value or None
         """
@@ -71,12 +71,12 @@ class DataCache:
     ) -> bool:
         """
         Set value in cache.
-        
+
         Args:
             key: Cache key
             value: Value to cache
             ttl: TTL in seconds (optional)
-            
+
         Returns:
             True if successful
         """
@@ -91,10 +91,10 @@ class DataCache:
     def delete(self, key: str) -> bool:
         """
         Delete value from cache.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             True if deleted
         """
@@ -174,15 +174,16 @@ def cached(
 ):
     """
     Decorator for caching function results.
-    
+
     Args:
         prefix: Cache key prefix
         ttl: Cache TTL in seconds
         key_args: List of argument names to use for cache key
-        
+
     Returns:
         Decorated function
     """
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> T:
@@ -236,6 +237,7 @@ def cached(
 
         # Return appropriate wrapper based on function type
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         return sync_wrapper

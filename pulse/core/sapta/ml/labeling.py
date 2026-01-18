@@ -20,6 +20,7 @@ log = get_logger(__name__)
 @dataclass
 class LabeledSample:
     """A single labeled sample for training."""
+
     ticker: str
     date: date
     features: dict[str, float]
@@ -32,7 +33,7 @@ class LabeledSample:
 class SaptaLabeler:
     """
     Label historical SAPTA signals for ML training.
-    
+
     A positive label (1) means the stock achieved target_gain_pct
     within target_days trading days from the signal date.
     """
@@ -44,7 +45,7 @@ class SaptaLabeler:
     ):
         """
         Initialize labeler.
-        
+
         Args:
             target_gain_pct: Target gain percentage (default: 10%)
             target_days: Trading days to achieve target (default: 20)
@@ -59,11 +60,11 @@ class SaptaLabeler:
     ) -> pd.DataFrame:
         """
         Label a price series with forward returns.
-        
+
         Args:
             df: DataFrame with 'close' column and DatetimeIndex
             signal_dates: Optional list of dates to label (if None, labels all)
-            
+
         Returns:
             DataFrame with additional columns:
             - forward_return: Return over target_days
@@ -71,11 +72,11 @@ class SaptaLabeler:
             - hit_target: 1 if max_forward_return >= target_gain_pct
             - days_to_target: Days to first hit target (or NaN)
         """
-        if df.empty or 'close' not in df.columns:
+        if df.empty or "close" not in df.columns:
             return df
 
         df = df.copy()
-        closes = df['close'].values
+        closes = df["close"].values
         n = len(closes)
 
         # Calculate forward returns
@@ -94,7 +95,7 @@ class SaptaLabeler:
                 continue
 
             # Get forward window
-            window = closes[i + 1:end_idx + 1]
+            window = closes[i + 1 : end_idx + 1]
 
             if len(window) == 0:
                 continue
@@ -117,10 +118,10 @@ class SaptaLabeler:
                         days_to_target[i] = j + 1
                         break
 
-        df['forward_return'] = forward_returns
-        df['max_forward_return'] = max_forward_returns
-        df['hit_target'] = hit_target
-        df['days_to_target'] = days_to_target
+        df["forward_return"] = forward_returns
+        df["max_forward_return"] = max_forward_returns
+        df["hit_target"] = hit_target
+        df["days_to_target"] = days_to_target
 
         return df
 
@@ -132,12 +133,12 @@ class SaptaLabeler:
     ) -> list[LabeledSample]:
         """
         Create labeled samples from features and prices.
-        
+
         Args:
             features_by_date: Dict mapping date to feature dict
             price_df: DataFrame with close prices
             ticker: Stock ticker
-            
+
         Returns:
             List of LabeledSample objects
         """
@@ -153,7 +154,7 @@ class SaptaLabeler:
                     signal_date = pd.to_datetime(signal_date).date()
 
                 # Find closest date in index
-                idx = labeled_df.index.get_indexer([pd.Timestamp(signal_date)], method='nearest')[0]
+                idx = labeled_df.index.get_indexer([pd.Timestamp(signal_date)], method="nearest")[0]
 
                 if idx < 0 or idx >= len(labeled_df):
                     continue
@@ -164,10 +165,12 @@ class SaptaLabeler:
                     ticker=ticker,
                     date=signal_date,
                     features=features,
-                    label=int(row.get('hit_target', 0)),
-                    forward_return=float(row.get('forward_return', 0)),
-                    max_return=float(row.get('max_forward_return', 0)),
-                    days_to_target=int(row['days_to_target']) if pd.notna(row.get('days_to_target')) else None,
+                    label=int(row.get("hit_target", 0)),
+                    forward_return=float(row.get("forward_return", 0)),
+                    max_return=float(row.get("max_forward_return", 0)),
+                    days_to_target=int(row["days_to_target"])
+                    if pd.notna(row.get("days_to_target"))
+                    else None,
                 )
                 samples.append(sample)
 
@@ -183,10 +186,10 @@ class SaptaLabeler:
     ) -> dict[str, Any]:
         """
         Calculate statistics from labeled samples.
-        
+
         Args:
             samples: List of labeled samples
-            
+
         Returns:
             Dictionary with statistics
         """
@@ -198,7 +201,9 @@ class SaptaLabeler:
         max_returns = [s.max_return for s in samples]
 
         positive_samples = [s for s in samples if s.label == 1]
-        days_to_target = [s.days_to_target for s in positive_samples if s.days_to_target is not None]
+        days_to_target = [
+            s.days_to_target for s in positive_samples if s.days_to_target is not None
+        ]
 
         return {
             "total_samples": len(samples),

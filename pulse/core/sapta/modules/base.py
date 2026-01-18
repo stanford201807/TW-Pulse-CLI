@@ -16,7 +16,7 @@ from pulse.core.sapta.models import ModuleScore
 class BaseModule(ABC):
     """
     Base class for all SAPTA analysis modules.
-    
+
     Each module:
     1. Analyzes specific aspect of price/volume data
     2. Returns a score (0 to max_score)
@@ -31,12 +31,12 @@ class BaseModule(ABC):
     def analyze(self, df: pd.DataFrame, **kwargs) -> ModuleScore:
         """
         Analyze data and return score.
-        
+
         Args:
             df: OHLCV DataFrame with columns: open, high, low, close, volume
                 Index should be DatetimeIndex
             **kwargs: Additional parameters
-            
+
         Returns:
             ModuleScore with score, status, details, and raw features
         """
@@ -67,9 +67,9 @@ class BaseModule(ABC):
         period: int = 14,
     ) -> pd.Series:
         """Calculate Average True Range."""
-        high = df['high']
-        low = df['low']
-        close = df['close']
+        high = df["high"]
+        low = df["low"]
+        close = df["close"]
 
         tr1 = high - low
         tr2 = abs(high - close.shift(1))
@@ -91,7 +91,7 @@ class BaseModule(ABC):
 
         higher_low_count = 0
         for i in range(1, len(values)):
-            if values[i] > values[i-1]:
+            if values[i] > values[i - 1]:
                 higher_low_count += 1
             else:
                 higher_low_count = 0
@@ -110,7 +110,7 @@ class BaseModule(ABC):
 
         lower_high_count = 0
         for i in range(1, len(values)):
-            if values[i] < values[i-1]:
+            if values[i] < values[i - 1]:
                 lower_high_count += 1
             else:
                 lower_high_count = 0
@@ -149,42 +149,44 @@ class BaseModule(ABC):
     ) -> list[dict[str, Any]]:
         """
         Find swing highs and lows.
-        
+
         A swing high is a high that is higher than 'lookback' bars before and after.
         A swing low is a low that is lower than 'lookback' bars before and after.
         """
         swings = []
-        highs = df['high'].values
-        lows = df['low'].values
+        highs = df["high"].values
+        lows = df["low"].values
         dates = df.index
 
         for i in range(lookback, len(df) - lookback):
             # Check swing high
             is_swing_high = all(
-                highs[i] > highs[i-j] and highs[i] > highs[i+j]
-                for j in range(1, lookback + 1)
+                highs[i] > highs[i - j] and highs[i] > highs[i + j] for j in range(1, lookback + 1)
             )
 
             # Check swing low
             is_swing_low = all(
-                lows[i] < lows[i-j] and lows[i] < lows[i+j]
-                for j in range(1, lookback + 1)
+                lows[i] < lows[i - j] and lows[i] < lows[i + j] for j in range(1, lookback + 1)
             )
 
             if is_swing_high:
-                swings.append({
-                    'type': 'high',
-                    'date': dates[i],
-                    'price': highs[i],
-                    'index': i,
-                })
+                swings.append(
+                    {
+                        "type": "high",
+                        "date": dates[i],
+                        "price": highs[i],
+                        "index": i,
+                    }
+                )
 
             if is_swing_low:
-                swings.append({
-                    'type': 'low',
-                    'date': dates[i],
-                    'price': lows[i],
-                    'index': i,
-                })
+                swings.append(
+                    {
+                        "type": "low",
+                        "date": dates[i],
+                        "price": lows[i],
+                        "index": i,
+                    }
+                )
 
-        return sorted(swings, key=lambda x: x['index'])
+        return sorted(swings, key=lambda x: x["index"])

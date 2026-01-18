@@ -23,12 +23,12 @@ from pulse.core.sapta.modules.base import BaseModule
 class TimeProjectionModule(BaseModule):
     """
     Astronacci-style time projection analysis.
-    
+
     Uses:
     1. Fibonacci time windows (21, 34, 55, 89, 144 days)
     2. Planetary aspects (if ephem available)
     3. Lunar phases
-    
+
     Max Score: 15
     """
 
@@ -47,7 +47,7 @@ class TimeProjectionModule(BaseModule):
     ) -> ModuleScore:
         """
         Analyze time projections.
-        
+
         Args:
             df: OHLCV DataFrame with DatetimeIndex
             include_planetary: Include planetary aspect analysis
@@ -75,12 +75,14 @@ class TimeProjectionModule(BaseModule):
         # === 2. Planetary Aspects (if available) ===
         if include_planetary:
             try:
-                planet_score, planet_signals, planet_features = self._analyze_planetary(current_date)
+                planet_score, planet_signals, planet_features = self._analyze_planetary(
+                    current_date
+                )
                 score += planet_score
                 signals.extend(planet_signals)
                 features.update(planet_features)
             except Exception as e:
-                features['planetary_error'] = str(e)
+                features["planetary_error"] = str(e)
 
         # === 3. Lunar Phase ===
         if include_lunar:
@@ -90,19 +92,19 @@ class TimeProjectionModule(BaseModule):
                 signals.extend(lunar_signals)
                 features.update(lunar_features)
             except Exception as e:
-                features['lunar_error'] = str(e)
+                features["lunar_error"] = str(e)
 
         # Store projected window
-        features['projected_window'] = projected_window
+        features["projected_window"] = projected_window
 
         # Determine status and details
         status = score >= 6  # Lowered threshold for status
 
         # Build informative details
-        if features.get('in_fib_window'):
+        if features.get("in_fib_window"):
             details = f"In Fib window: Day {features.get('days_since_significant_low')} from low"
         elif projected_window:
-            days_to = features.get('days_to_next_window', 0)
+            days_to = features.get("days_to_next_window", 0)
             details = f"Next window: {projected_window} ({days_to} days)"
         else:
             details = f"Day {features.get('days_since_significant_low', 0)} from low"
@@ -116,7 +118,7 @@ class TimeProjectionModule(BaseModule):
     ) -> tuple[float, list[str], str | None, dict[str, Any]]:
         """
         Analyze Fibonacci time from significant low.
-        
+
         Returns:
             Tuple of (score, signals, projected_window, features)
         """
@@ -130,7 +132,7 @@ class TimeProjectionModule(BaseModule):
         historical = df.tail(lookback)
 
         # Find the lowest point
-        low_idx = historical['low'].idxmin()
+        low_idx = historical["low"].idxmin()
         low_date = low_idx
         if isinstance(low_date, pd.Timestamp):
             low_date = low_date.to_pydatetime().date()
@@ -141,8 +143,8 @@ class TimeProjectionModule(BaseModule):
 
         # Calculate trading days since low (approximate)
         days_since_low = (current_date - low_date).days
-        features['days_since_significant_low'] = int(days_since_low)
-        features['significant_low_date'] = str(low_date)
+        features["days_since_significant_low"] = int(days_since_low)
+        features["significant_low_date"] = str(low_date)
 
         # Check if we're in a Fibonacci window
         in_window = False
@@ -157,8 +159,8 @@ class TimeProjectionModule(BaseModule):
                 nearest_fib = fib_day
                 break
 
-        features['in_fib_window'] = float(in_window)
-        features['nearest_fib'] = nearest_fib
+        features["in_fib_window"] = float(in_window)
+        features["nearest_fib"] = nearest_fib
 
         # Project next window
         for fib_day in self.FIB_WINDOWS:
@@ -167,9 +169,11 @@ class TimeProjectionModule(BaseModule):
                 window_start = current_date + timedelta(days=days_to_window - self.FIB_TOLERANCE)
                 window_end = current_date + timedelta(days=days_to_window + self.FIB_TOLERANCE)
 
-                projected_window = f"{window_start.strftime('%d %b')} - {window_end.strftime('%d %b %Y')}"
-                features['days_to_next_window'] = int(days_to_window)
-                features['next_fib_day'] = fib_day
+                projected_window = (
+                    f"{window_start.strftime('%d %b')} - {window_end.strftime('%d %b %Y')}"
+                )
+                features["days_to_next_window"] = int(days_to_window)
+                features["next_fib_day"] = fib_day
 
                 if days_to_window <= 10:
                     score += 4
@@ -187,7 +191,7 @@ class TimeProjectionModule(BaseModule):
     ) -> tuple[float, list[str], dict[str, Any]]:
         """
         Analyze planetary aspects using ephem library.
-        
+
         Key aspects:
         - Conjunction (0°): Powerful, new beginnings
         - Sextile (60°): Harmonious opportunity
@@ -215,26 +219,26 @@ class TimeProjectionModule(BaseModule):
             saturn = ephem.Saturn(obs_date)
 
             planets = {
-                'sun': float(sun.hlong) * 180 / np.pi,
-                'moon': float(moon.hlong) * 180 / np.pi,
-                'mercury': float(mercury.hlong) * 180 / np.pi,
-                'venus': float(venus.hlong) * 180 / np.pi,
-                'mars': float(mars.hlong) * 180 / np.pi,
-                'jupiter': float(jupiter.hlong) * 180 / np.pi,
-                'saturn': float(saturn.hlong) * 180 / np.pi,
+                "sun": float(sun.hlong) * 180 / np.pi,
+                "moon": float(moon.hlong) * 180 / np.pi,
+                "mercury": float(mercury.hlong) * 180 / np.pi,
+                "venus": float(venus.hlong) * 180 / np.pi,
+                "mars": float(mars.hlong) * 180 / np.pi,
+                "jupiter": float(jupiter.hlong) * 180 / np.pi,
+                "saturn": float(saturn.hlong) * 180 / np.pi,
             }
 
-            features['planetary_positions'] = planets
+            features["planetary_positions"] = planets
 
             # Check key aspects
             aspects_found = []
 
             # Jupiter-Saturn (major economic cycle)
-            jup_sat_angle = abs(planets['jupiter'] - planets['saturn']) % 360
+            jup_sat_angle = abs(planets["jupiter"] - planets["saturn"]) % 360
             if jup_sat_angle > 180:
                 jup_sat_angle = 360 - jup_sat_angle
 
-            features['jupiter_saturn_angle'] = float(jup_sat_angle)
+            features["jupiter_saturn_angle"] = float(jup_sat_angle)
 
             if jup_sat_angle < 10:  # Conjunction
                 score += 3
@@ -247,7 +251,7 @@ class TimeProjectionModule(BaseModule):
                 aspects_found.append("Jupiter-Saturn opposition (turning point)")
 
             # Venus aspects (market sentiment)
-            ven_jup_angle = abs(planets['venus'] - planets['jupiter']) % 360
+            ven_jup_angle = abs(planets["venus"] - planets["jupiter"]) % 360
             if ven_jup_angle > 180:
                 ven_jup_angle = 360 - ven_jup_angle
 
@@ -257,7 +261,7 @@ class TimeProjectionModule(BaseModule):
 
             # Mercury retrograde check (simplified)
             # In reality would need to track apparent motion
-            features['mercury_longitude'] = float(planets['mercury'])
+            features["mercury_longitude"] = float(planets["mercury"])
 
             if aspects_found:
                 signals.extend(aspects_found)
@@ -267,7 +271,7 @@ class TimeProjectionModule(BaseModule):
             return score, signals, features
 
         except ImportError:
-            features['planetary_available'] = False
+            features["planetary_available"] = False
             return 0, ["Planetary analysis unavailable (install ephem)"], features
 
     def _analyze_lunar(
@@ -276,7 +280,7 @@ class TimeProjectionModule(BaseModule):
     ) -> tuple[float, list[str], dict[str, Any]]:
         """
         Analyze lunar phase.
-        
+
         Market tendencies:
         - New Moon: Potential bottoms, new beginnings
         - Full Moon: Peak emotion, potential tops
@@ -304,7 +308,7 @@ class TimeProjectionModule(BaseModule):
 
             # Convert to phase (0-1)
             phase = elongation / (2 * np.pi)
-            features['lunar_phase'] = float(phase)
+            features["lunar_phase"] = float(phase)
 
             # Determine phase name
             if phase < 0.05 or phase > 0.95:
@@ -326,7 +330,7 @@ class TimeProjectionModule(BaseModule):
             else:
                 phase_name = "intermediate"
 
-            features['lunar_phase_name'] = phase_name
+            features["lunar_phase_name"] = phase_name
 
             # Always add lunar phase info
             if phase_name == "intermediate":
@@ -336,7 +340,7 @@ class TimeProjectionModule(BaseModule):
             next_new = ephem.next_new_moon(obs_date)
             next_new_date = ephem.Date(next_new).datetime().date()
             days_to_new = (next_new_date - current_date).days
-            features['days_to_new_moon'] = int(days_to_new)
+            features["days_to_new_moon"] = int(days_to_new)
 
             if days_to_new <= 3:
                 score += 1
@@ -345,5 +349,5 @@ class TimeProjectionModule(BaseModule):
             return score, signals, features
 
         except ImportError:
-            features['lunar_available'] = False
+            features["lunar_available"] = False
             return 0, ["Lunar analysis unavailable (install ephem)"], features

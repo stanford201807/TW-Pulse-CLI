@@ -1,7 +1,6 @@
 """FinMind data fetcher for Taiwan stocks (primary data source)."""
 
 from datetime import datetime
-from typing import List, Optional
 
 import pandas as pd
 
@@ -62,8 +61,8 @@ class FinMindFetcher:
             token: FinMind API token (optional, for higher rate limits)
         """
         self.token = token
-        self._dl: Optional["DataLoader"] = None
-        self._stock_info_cache: Optional[pd.DataFrame] = None
+        self._dl: DataLoader | None = None
+        self._stock_info_cache: pd.DataFrame | None = None
 
     @property
     def dl(self) -> "DataLoader":
@@ -194,7 +193,7 @@ class FinMindFetcher:
             stock_info = self._get_stock_info(formatted_ticker)
 
             # Convert to OHLCV list
-            history: List[OHLCV] = []
+            history: list[OHLCV] = []
             for _, row in df.iterrows():
                 try:
                     ohlcv = OHLCV(
@@ -380,10 +379,10 @@ class FinMindFetcher:
 
     async def fetch_multiple(
         self,
-        tickers: List[str],
+        tickers: list[str],
         start_date: str,
         end_date: str = "",
-    ) -> List[StockData]:
+    ) -> list[StockData]:
         """
         Fetch data for multiple tickers from FinMind.
 
@@ -398,7 +397,7 @@ class FinMindFetcher:
         if not end_date:
             end_date = datetime.now().strftime("%Y-%m-%d")
 
-        results: List[StockData] = []
+        results: list[StockData] = []
 
         # Format all tickers
         formatted_tickers = [self._format_stock_id(t) for t in tickers]
@@ -429,7 +428,7 @@ class FinMindFetcher:
                 stock_info = self._get_stock_info(stock_id)
 
                 # Convert to OHLCV list
-                history: List[OHLCV] = []
+                history: list[OHLCV] = []
                 for _, row in stock_df.iterrows():
                     try:
                         ohlcv = OHLCV(
@@ -607,7 +606,7 @@ class FinMindFetcher:
                 return None
 
             # Convert to OHLCV list (index only has price, not full OHLCV)
-            history: List[OHLCV] = []
+            history: list[OHLCV] = []
             for _, row in df.iterrows():
                 try:
                     price = float(row.get("price", 0))

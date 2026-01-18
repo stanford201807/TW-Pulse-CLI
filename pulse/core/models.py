@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 class BrokerType(str, Enum):
     """Broker type classification."""
+
     ASING = "Asing"
     LOKAL = "Lokal"
     UNKNOWN = "Unknown"
@@ -16,6 +17,7 @@ class BrokerType(str, Enum):
 
 class AccDistType(str, Enum):
     """Accumulation/Distribution type."""
+
     ACCUMULATION = "Acc"
     DISTRIBUTION = "Dist"
     SMALL_ACC = "Small Acc"
@@ -25,6 +27,7 @@ class AccDistType(str, Enum):
 
 class SignalType(str, Enum):
     """Trading signal type."""
+
     STRONG_BUY = "Strong Buy"
     BUY = "Buy"
     NEUTRAL = "Neutral"
@@ -34,6 +37,7 @@ class SignalType(str, Enum):
 
 class TrendType(str, Enum):
     """Trend direction."""
+
     BULLISH = "Bullish"
     BEARISH = "Bearish"
     SIDEWAYS = "Sideways"
@@ -41,8 +45,10 @@ class TrendType(str, Enum):
 
 # ============== Stock Data Models ==============
 
+
 class OHLCV(BaseModel):
     """Single OHLCV data point."""
+
     date: datetime
     open: float
     high: float
@@ -65,6 +71,7 @@ class OHLCV(BaseModel):
 
 class StockData(BaseModel):
     """Complete stock data with historical prices."""
+
     ticker: str
     name: str | None = None
     sector: str | None = None
@@ -97,15 +104,15 @@ class StockData(BaseModel):
     fetched_at: datetime = Field(default_factory=datetime.now)
 
     class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+        json_encoders = {datetime: lambda v: v.isoformat()}
 
 
 # ============== Broker Data Models ==============
 
+
 class BrokerTransaction(BaseModel):
     """Single broker transaction data."""
+
     broker_code: str
     broker_name: str | None = None
     broker_type: BrokerType = BrokerType.UNKNOWN
@@ -135,6 +142,7 @@ class BrokerTransaction(BaseModel):
 
 class BandarDetector(BaseModel):
     """Bandar/smart money detection data."""
+
     average: float = 0.0
     broker_accdist: AccDistType = AccDistType.NEUTRAL
 
@@ -155,12 +163,13 @@ class BandarDetector(BaseModel):
     def buyer_seller_ratio(self) -> float:
         """Calculate buyer to seller ratio."""
         if self.total_seller == 0:
-            return float('inf') if self.total_buyer > 0 else 0.0
+            return float("inf") if self.total_buyer > 0 else 0.0
         return self.total_buyer / self.total_seller
 
 
 class BrokerSummary(BaseModel):
     """Complete broker summary for a ticker."""
+
     ticker: str
     date: datetime
 
@@ -187,6 +196,7 @@ class BrokerSummary(BaseModel):
 
 class BrokerData(BaseModel):
     """Broker flow data for analysis."""
+
     ticker: str
     summaries: list[BrokerSummary] = Field(default_factory=list)
 
@@ -205,8 +215,10 @@ class BrokerData(BaseModel):
 
 # ============== Technical Indicators ==============
 
+
 class TechnicalIndicators(BaseModel):
     """Technical analysis indicators."""
+
     ticker: str
     calculated_at: datetime = Field(default_factory=datetime.now)
 
@@ -267,8 +279,10 @@ class TechnicalIndicators(BaseModel):
 
 # ============== Fundamental Data ==============
 
+
 class FundamentalData(BaseModel):
     """Fundamental analysis data."""
+
     ticker: str
 
     # Valuation ratios
@@ -326,8 +340,10 @@ class FundamentalData(BaseModel):
 
 # ============== Analysis Results ==============
 
+
 class AnalysisResult(BaseModel):
     """Complete analysis result combining all data."""
+
     ticker: str
     analyzed_at: datetime = Field(default_factory=datetime.now)
 
@@ -358,6 +374,7 @@ class AnalysisResult(BaseModel):
 
 class ScreeningResult(BaseModel):
     """Stock screening result."""
+
     screened_at: datetime = Field(default_factory=datetime.now)
     criteria: dict[str, Any] = Field(default_factory=dict)
 
@@ -379,6 +396,7 @@ class ScreeningResult(BaseModel):
 
 class SectorAnalysis(BaseModel):
     """Sector-level analysis."""
+
     sector: str
     analyzed_at: datetime = Field(default_factory=datetime.now)
 
@@ -403,21 +421,24 @@ class SectorAnalysis(BaseModel):
 
 class TradeQuality(str, Enum):
     """Trade quality based on risk/reward ratio."""
+
     EXCELLENT = "Excellent"  # RR >= 3.0
-    GOOD = "Good"            # RR >= 2.0
-    FAIR = "Fair"            # RR >= 1.5
-    POOR = "Poor"            # RR < 1.5
+    GOOD = "Good"  # RR >= 2.0
+    FAIR = "Fair"  # RR >= 1.5
+    POOR = "Poor"  # RR < 1.5
 
 
 class TradeValidity(str, Enum):
     """Trade validity/timeframe."""
-    INTRADAY = "Intraday"      # Same day
-    SWING = "Swing"            # 3-10 days
-    POSITION = "Position"      # Weeks to months
+
+    INTRADAY = "Intraday"  # Same day
+    SWING = "Swing"  # 3-10 days
+    POSITION = "Position"  # Weeks to months
 
 
 class TradingPlan(BaseModel):
     """Complete trading plan with entry, TP, SL, and RR calculations."""
+
     ticker: str
     generated_at: datetime = Field(default_factory=datetime.now)
 
@@ -426,28 +447,28 @@ class TradingPlan(BaseModel):
     entry_type: str = "market"  # "market" | "limit" | "breakout"
 
     # Take Profit Levels (graduated exit strategy)
-    tp1: float                          # Conservative - nearest resistance
-    tp1_percent: float                  # % gain from entry
-    tp2: float | None = None         # Moderate - resistance 2 or ATR-based
+    tp1: float  # Conservative - nearest resistance
+    tp1_percent: float  # % gain from entry
+    tp2: float | None = None  # Moderate - resistance 2 or ATR-based
     tp2_percent: float | None = None
-    tp3: float | None = None         # Aggressive - extended target
+    tp3: float | None = None  # Aggressive - extended target
     tp3_percent: float | None = None
 
     # Stop Loss
     stop_loss: float
-    stop_loss_percent: float            # % loss from entry (negative)
-    stop_loss_method: str = "hybrid"    # "atr" | "support" | "percentage" | "hybrid"
+    stop_loss_percent: float  # % loss from entry (negative)
+    stop_loss_method: str = "hybrid"  # "atr" | "support" | "percentage" | "hybrid"
 
     # Risk/Reward Analysis
-    risk_amount: float                  # Entry - SL (per share)
-    reward_tp1: float                   # TP1 - Entry (per share)
+    risk_amount: float  # Entry - SL (per share)
+    reward_tp1: float  # TP1 - Entry (per share)
     reward_tp2: float | None = None
-    rr_ratio_tp1: float                 # e.g., 1.5 means 1:1.5
+    rr_ratio_tp1: float  # e.g., 1.5 means 1:1.5
     rr_ratio_tp2: float | None = None
 
     # Trade Assessment
     trade_quality: TradeQuality = TradeQuality.FAIR
-    confidence: int = 50                # 0-100
+    confidence: int = 50  # 0-100
     validity: TradeValidity = TradeValidity.SWING
 
     # Position Sizing

@@ -5,7 +5,7 @@ from typing import Any
 
 from pulse.core.data.yfinance import YFinanceFetcher
 from pulse.core.models import SectorAnalysis, StockData
-from pulse.utils.constants import TW50_TICKERS, TW_SECTORS, MIDCAP100_TICKERS
+from pulse.utils.constants import MIDCAP100_TICKERS, TW50_TICKERS, TW_SECTORS
 from pulse.utils.logger import get_logger
 
 log = get_logger(__name__)

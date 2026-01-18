@@ -19,14 +19,14 @@ from pulse.core.sapta.modules.base import BaseModule
 class AntiDistributionModule(BaseModule):
     """
     Filter out distribution patterns.
-    
+
     Distribution signs (negative):
     1. High volume + weak close (smart money selling)
     2. Fake breakouts that fail quickly
     3. Negative OBV divergence (price up, OBV down)
-    
+
     Starts with max score, deducts for distribution signs.
-    
+
     Max Score: 15
     """
 
@@ -41,7 +41,7 @@ class AntiDistributionModule(BaseModule):
     ) -> ModuleScore:
         """
         Analyze for distribution patterns.
-        
+
         Args:
             df: OHLCV DataFrame
             lookback: Number of candles to analyze
@@ -56,14 +56,14 @@ class AntiDistributionModule(BaseModule):
         features = {}
 
         recent = df.tail(lookback)
-        avg_volume = df['volume'].rolling(50).mean()
+        avg_volume = df["volume"].rolling(50).mean()
 
         # === Check 1: Distribution candles ===
         # High volume + weak close = distribution
         dist_candles = 0
 
         for i in range(-lookback, 0):
-            vol = df['volume'].iloc[i]
+            vol = df["volume"].iloc[i]
             avg_vol = avg_volume.iloc[i]
 
             if pd.isna(avg_vol) or avg_vol == 0:
@@ -71,15 +71,15 @@ class AntiDistributionModule(BaseModule):
 
             if vol > avg_vol * 1.8:  # Volume spike
                 candle = df.iloc[i]
-                candle_range = candle['high'] - candle['low']
+                candle_range = candle["high"] - candle["low"]
 
                 if candle_range > 0:
-                    close_position = (candle['close'] - candle['low']) / candle_range
+                    close_position = (candle["close"] - candle["low"]) / candle_range
 
                     if close_position < 0.3:  # Weak close
                         dist_candles += 1
 
-        features['distribution_candles'] = int(dist_candles)
+        features["distribution_candles"] = int(dist_candles)
 
         if dist_candles >= 3:
             score -= 6
@@ -93,19 +93,19 @@ class AntiDistributionModule(BaseModule):
 
         # === Check 2: False breakout ===
         # Price breaks resistance but fails to hold
-        resistance = recent.iloc[:-false_break_candles]['high'].max()
+        resistance = recent.iloc[:-false_break_candles]["high"].max()
 
         false_breakout = False
         for i in range(-false_break_candles - 5, -false_break_candles):
             if i >= -len(df):
-                if df['high'].iloc[i] > resistance:
+                if df["high"].iloc[i] > resistance:
                     # Breakout occurred - check if it held
                     post_break = df.iloc[i:]
-                    if post_break['close'].iloc[-1] < resistance:
+                    if post_break["close"].iloc[-1] < resistance:
                         false_breakout = True
                         break
 
-        features['false_breakout'] = float(false_breakout)
+        features["false_breakout"] = float(false_breakout)
 
         if false_breakout:
             score -= 5
@@ -115,43 +115,43 @@ class AntiDistributionModule(BaseModule):
         # Price making higher highs but OBV making lower highs = bearish
         obv = self._calculate_obv(df)
 
-        price_trend = df['close'].iloc[-1] > df['close'].iloc[-20]
+        price_trend = df["close"].iloc[-1] > df["close"].iloc[-20]
         obv_trend = obv.iloc[-1] > obv.iloc[-20]
 
-        features['price_trend_up'] = float(price_trend)
-        features['obv_trend_up'] = float(obv_trend)
+        features["price_trend_up"] = float(price_trend)
+        features["obv_trend_up"] = float(obv_trend)
 
         if price_trend and not obv_trend:
             score -= 4
             signals.append("Negative OBV divergence (bearish)")
-            features['obv_divergence'] = 'bearish'
+            features["obv_divergence"] = "bearish"
         elif not price_trend and obv_trend:
             # This is actually bullish - accumulation
             score += 2  # Bonus for hidden accumulation
             signals.append("Positive OBV divergence (hidden accumulation)")
-            features['obv_divergence'] = 'bullish'
+            features["obv_divergence"] = "bullish"
         else:
-            features['obv_divergence'] = 'none'
+            features["obv_divergence"] = "none"
 
         # === Check 4: Selling climax pattern ===
         # Very high volume with large down bar - could be capitulation (positive)
         last_5 = df.tail(5)
         for i in range(len(last_5)):
             candle = last_5.iloc[i]
-            vol = candle['volume']
-            avg_vol = avg_volume.iloc[-(5-i)]
+            vol = candle["volume"]
+            avg_vol = avg_volume.iloc[-(5 - i)]
 
             if pd.notna(avg_vol) and vol > avg_vol * 3:
                 # Huge volume spike
-                if candle['close'] < candle['open']:
+                if candle["close"] < candle["open"]:
                     # Down bar
-                    body_size = abs(candle['close'] - candle['open'])
-                    rng = candle['high'] - candle['low']
+                    body_size = abs(candle["close"] - candle["open"])
+                    rng = candle["high"] - candle["low"]
 
                     if rng > 0 and body_size / rng > 0.7:
                         # Large down body with huge volume = capitulation
                         signals.append("Potential capitulation (selling climax)")
-                        features['capitulation'] = True
+                        features["capitulation"] = True
                         # This is actually good for reversal
                         score += 2
                         break
@@ -170,10 +170,10 @@ class AntiDistributionModule(BaseModule):
         obv = [0]
 
         for i in range(1, len(df)):
-            if df['close'].iloc[i] > df['close'].iloc[i-1]:
-                obv.append(obv[-1] + df['volume'].iloc[i])
-            elif df['close'].iloc[i] < df['close'].iloc[i-1]:
-                obv.append(obv[-1] - df['volume'].iloc[i])
+            if df["close"].iloc[i] > df["close"].iloc[i - 1]:
+                obv.append(obv[-1] + df["volume"].iloc[i])
+            elif df["close"].iloc[i] < df["close"].iloc[i - 1]:
+                obv.append(obv[-1] - df["volume"].iloc[i])
             else:
                 obv.append(obv[-1])
 

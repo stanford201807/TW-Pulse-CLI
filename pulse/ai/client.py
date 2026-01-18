@@ -102,7 +102,9 @@ class AIClient:
         is_greeting = message.lower().strip() in greetings
 
         if not self._conversation_history or is_greeting:
-            user_msg = f"[指示: 以 PULSE 台灣股市助理的身份回答。不是程式設計助理。]\n\nUser: {message}"
+            user_msg = (
+                f"[指示: 以 PULSE 台灣股市助理的身份回答。不是程式設計助理。]\n\nUser: {message}"
+            )
 
         # Add current message
         messages.append({"role": "user", "content": user_msg})

@@ -1,14 +1,11 @@
 """yfinance data fetcher for Taiwan stocks (fallback)."""
 
-import asyncio
-from typing import Any
-
 import pandas as pd
 import yfinance as yf
 
 from pulse.core.models import OHLCV, FundamentalData, StockData
 from pulse.utils.logger import get_logger
-from pulse.utils.retry import RetryPolicy, retry_async_call
+from pulse.utils.retry import RetryPolicy
 
 log = get_logger(__name__)
 

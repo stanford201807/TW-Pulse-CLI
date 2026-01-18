@@ -1,6 +1,5 @@
 """Terminal chart visualization using plotext."""
 
-
 import plotext as plt
 
 
@@ -20,13 +19,13 @@ class TerminalChart:
     ) -> str:
         """
         Generate price line chart.
-        
+
         Args:
             dates: List of date strings
             prices: List of prices
             title: Chart title
             color: Line color
-            
+
         Returns:
             ASCII chart string
         """
@@ -50,12 +49,12 @@ class TerminalChart:
     ) -> str:
         """
         Generate candlestick-style chart.
-        
+
         Args:
             dates: List of date strings
             opens, highs, lows, closes: OHLC data
             title: Chart title
-            
+
         Returns:
             ASCII chart string
         """
@@ -75,12 +74,12 @@ class TerminalChart:
     ) -> str:
         """
         Generate volume bar chart.
-        
+
         Args:
             dates: List of date strings
             volumes: List of volumes
             title: Chart title
-            
+
         Returns:
             ASCII chart string
         """
@@ -100,12 +99,12 @@ class TerminalChart:
     ) -> str:
         """
         Generate multi-line chart for indicators.
-        
+
         Args:
             data: Dict of {label: values}
             title: Chart title
             labels: Optional x-axis labels
-            
+
         Returns:
             ASCII chart string
         """
@@ -132,14 +131,14 @@ class TerminalChart:
     ) -> str:
         """
         Generate forecast chart with confidence interval.
-        
+
         Args:
             historical: Historical price data
             forecast: Forecasted values
             lower_bound: Lower confidence bound
             upper_bound: Upper confidence bound
             title: Chart title
-            
+
         Returns:
             ASCII chart string
         """
@@ -170,11 +169,11 @@ class TerminalChart:
     ) -> str:
         """
         Generate RSI chart with overbought/oversold lines.
-        
+
         Args:
             rsi_values: RSI values
             title: Chart title
-            
+
         Returns:
             ASCII chart string
         """
@@ -196,11 +195,11 @@ class TerminalChart:
 def generate_sparkline(values: list[float], width: int = 20) -> str:
     """
     Generate simple sparkline using Unicode blocks.
-    
+
     Args:
         values: List of values
         width: Sparkline width
-        
+
     Returns:
         Sparkline string
     """

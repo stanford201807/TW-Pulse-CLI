@@ -1,5 +1,6 @@
 """Analysis commands: analyze, technical, fundamental."""
 
+import asyncio
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -13,6 +14,7 @@ async def analyze_command(app: "PulseApp", args: str) -> str:
 
     ticker = args.strip().upper()
 
+    from pulse.core.analysis.fundamental import FundamentalAnalyzer
     from pulse.core.analysis.institutional_flow import InstitutionalFlowAnalyzer
     from pulse.core.analysis.technical import TechnicalAnalyzer
     from pulse.core.data.yfinance import YFinanceFetcher
@@ -23,11 +25,16 @@ async def analyze_command(app: "PulseApp", args: str) -> str:
     if not stock:
         return f"無法取得 {ticker} 的資料"
 
+    # Fetch all data in parallel
     tech_analyzer = TechnicalAnalyzer()
-    technical = await tech_analyzer.analyze(ticker)
-
+    fundamental_analyzer = FundamentalAnalyzer()
     broker_analyzer = InstitutionalFlowAnalyzer()
-    broker = await broker_analyzer.analyze(ticker)
+
+    technical, fundamental, broker = await asyncio.gather(
+        tech_analyzer.analyze(ticker),
+        fundamental_analyzer.analyze(ticker),
+        broker_analyzer.analyze(ticker),
+    )
 
     data = {
         "stock": {
@@ -40,6 +47,7 @@ async def analyze_command(app: "PulseApp", args: str) -> str:
             "market_cap": stock.market_cap,
         },
         "technical": technical.to_summary() if technical else None,
+        "fundamental": fundamental.to_summary() if fundamental else None,
         "broker": broker if broker else None,
     }
 

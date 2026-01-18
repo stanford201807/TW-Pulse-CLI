@@ -1,7 +1,6 @@
 """Formatting utilities for Pulse CLI."""
 
 
-
 def format_currency(
     value: int | float,
     currency: str = "NT$",

@@ -13,8 +13,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from pulse.utils.constants import MIDCAP100_TICKERS, TPEX_POPULAR, TW50_TICKERS
 from pulse.utils.logger import get_logger
-from pulse.utils.constants import TW50_TICKERS, MIDCAP100_TICKERS, TPEX_POPULAR
 
 log = get_logger(__name__)
 
@@ -246,9 +246,10 @@ class StockScreener:
     async def _fetch_stock_data(self, ticker: str) -> ScreenResult | None:
         """Fetch all data needed for screening."""
         try:
+            from datetime import datetime, timedelta
+
             from pulse.core.analysis.technical import TechnicalAnalyzer
             from pulse.core.data.stock_data_provider import StockDataProvider
-            from datetime import datetime, timedelta
 
             # Initialize StockDataProvider (token will be managed by config)
             fetcher = StockDataProvider()

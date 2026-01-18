@@ -12,5 +12,6 @@ def __getattr__(name):
     """Lazy import to avoid circular import issues."""
     if name in ("PulseApp", "main"):
         from pulse.cli.app import PulseApp, main
+
         return PulseApp if name == "PulseApp" else main
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
