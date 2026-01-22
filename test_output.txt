@@ -1,0 +1,51 @@
+﻿.\.venv\Scripts\python.exe : [01/22/26 21:15:05] INFO     Using OpenAI-comp
+atible proxy at                  
+位於 線路:1 字元:1
++ .\.venv\Scripts\python.exe test_ai_language_response.py 2>&1 | Out-Fi ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([01/22/26 21:15...            
+       :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+                             http://127.0.0.1:8045/v1 for model gemini-3-fl
+ash 
+=== 測試 AI 回應語言 ===
+
+使用模型: Gemini 3 Flash (Google) (gemini/gemini-3-flash)
+
+正在呼叫 AI 進行分析...
+
+--------------------------------------------------------------------------------
+AI 回應:
+================================================================================
+Traceback (most recent call last):
+  File "D:\GitHub\TW-Pulse-CLI\test_ai_language_response.py", line 70, in t
+est_ai_language
+    print(response)
+    ~~~~~^^^^^^^^^^
+UnicodeEncodeError: 'cp950' codec can't encode character '\u26a0' in positi
+on 1569: illegal multibyte sequence
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\GitHub\TW-Pulse-CLI\test_ai_language_response.py", line 113, in 
+<module>
+    asyncio.run(test_ai_language())
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\asyncio\runners.py", line 204, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\asyncio\runners.py", line 127, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\asyncio\base_events.py", line 719, in run_until_co
+mplete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "D:\GitHub\TW-Pulse-CLI\test_ai_language_response.py", line 107, in 
+test_ai_language
+    print(f"\u274c 測試過程發生錯誤: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'cp950' codec can't encode character '\u274c' in positi
+on 0: illegal multibyte sequence

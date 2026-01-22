@@ -9,10 +9,11 @@ debug: false
 # API keys are read from environment variables:
 #   ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, DEEPSEEK_API_KEY
 ai:
-  default_model: "deepseek/deepseek-chat"
+  default_model: "gemini/gemini-3-flash"
   temperature: 0.7
   max_tokens: 4096
   timeout: 180
+  gemini_api_base: "http://127.0.0.1:8045/v1"  # Antigravity reverse proxy (OpenAI-compatible)
 
   available_models:
     # DeepSeek (Cost-effective, high performance)
@@ -26,6 +27,8 @@ ai:
     # Google
     gemini/gemini-2.0-flash: "Gemini 2.0 Flash (Google)"
     gemini/gemini-2.5-flash-preview-05-20: "Gemini 2.5 Flash (Google)"
+    gemini/gemini-3-flash: "Gemini 3 Flash (Google)"
+    gemini/gemini-3-pro-high: "Gemini 3 Pro High (Google)"
     # Groq (Free tier)
     groq/llama-3.3-70b-versatile: "Llama 3.3 70B (Groq)"
     groq/llama-3.1-8b-instant: "Llama 3.1 8B (Groq)"

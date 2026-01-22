@@ -1,5 +1,6 @@
 """AI client using LiteLLM for multi-provider LLM support."""
 
+import os
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -110,16 +111,44 @@ class AIClient:
         messages.append({"role": "user", "content": user_msg})
 
         try:
-            response = await acompletion(
-                model=self.model,
-                messages=messages,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                timeout=self.timeout,
-            )
+            # Check if using Gemini with custom API base (OpenAI-compatible proxy)
+            if self.model.startswith("gemini/") and settings.ai.gemini_api_base:
+                # Use OpenAI SDK for OpenAI-compatible proxies
+                from openai import AsyncOpenAI
+                
+                client = AsyncOpenAI(
+                    base_url=settings.ai.gemini_api_base,
+                    api_key=os.environ.get("GEMINI_API_KEY", "sk-fake-key"),
+                    timeout=self.timeout,
+                )
+                
+                # Remove gemini/ prefix for OpenAI-compatible models
+                model_name = self.model.replace("gemini/", "")
+                
+                log.info(f"Using OpenAI-compatible proxy at {settings.ai.gemini_api_base} for model {model_name}")
+                
+                response = await client.chat.completions.create(
+                    model=model_name,
+                    messages=messages,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                )
+                
+                assistant_message = response.choices[0].message.content or ""
+            else:
+                # Use LiteLLM for standard providers
+                api_params = {
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": self.temperature,
+                    "max_tokens": self.max_tokens,
+                    "timeout": self.timeout,
+                }
+                
+                response = await acompletion(**api_params)
+                assistant_message = response.choices[0].message.content or ""
 
-            assistant_message = response.choices[0].message.content or ""
-
+            
             # Update history
             if use_history:
                 self._conversation_history.append({"role": "user", "content": message})
@@ -161,23 +190,57 @@ class AIClient:
         messages.append({"role": "user", "content": message})
 
         try:
-            response = await acompletion(
-                model=self.model,
-                messages=messages,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                timeout=self.timeout,
-                stream=True,
-            )
+            # Check if using Gemini with custom API base (OpenAI-compatible proxy)
+            if self.model.startswith("gemini/") and settings.ai.gemini_api_base:
+                # Use OpenAI SDK for OpenAI-compatible proxies
+                from openai import AsyncOpenAI
+                
+                client = AsyncOpenAI(
+                    base_url=settings.ai.gemini_api_base,
+                    api_key=os.environ.get("GEMINI_API_KEY", "sk-fake-key"),
+                    timeout=self.timeout,
+                )
+                
+                # Remove gemini/ prefix for OpenAI-compatible models
+                model_name = self.model.replace("gemini/", "")
+                
+                response = await client.chat.completions.create(
+                    model=model_name,
+                    messages=messages,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    stream=True,
+                )
+                
+                full_response = ""
+                
+                async for chunk in response:
+                    if chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
+                        full_response += content
+                        yield content
+            else:
+                # Use LiteLLM for standard providers
+                api_params = {
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": self.temperature,
+                    "max_tokens": self.max_tokens,
+                    "timeout": self.timeout,
+                    "stream": True,
+                }
+                
+                response = await acompletion(**api_params)
+                
+                full_response = ""
+                
+                async for chunk in response:
+                    if chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
+                        full_response += content
+                        yield content
 
-            full_response = ""
-
-            async for chunk in response:
-                if chunk.choices[0].delta.content:
-                    content = chunk.choices[0].delta.content
-                    full_response += content
-                    yield content
-
+            
             # Update history after streaming complete
             if use_history:
                 self._conversation_history.append({"role": "user", "content": message})

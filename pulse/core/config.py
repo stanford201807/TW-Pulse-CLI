@@ -37,6 +37,12 @@ class AISettings(BaseSettings):
     )
     timeout: int = Field(default=120, description="Request timeout in seconds")
 
+    # API endpoint customization (for proxies or custom deployments)
+    gemini_api_base: str | None = Field(
+        default=None,
+        description="Custom API base URL for Gemini (e.g., http://127.0.0.1:8045)",
+    )
+
     # Available models (LiteLLM format)
     # Users can set API keys via environment variables:
     # - ANTHROPIC_API_KEY for Anthropic models
@@ -57,6 +63,8 @@ class AISettings(BaseSettings):
             # Google
             "gemini/gemini-2.0-flash": "Gemini 2.0 Flash (Google)",
             "gemini/gemini-2.5-flash-preview-05-20": "Gemini 2.5 Flash (Google)",
+            "gemini/gemini-3-flash": "Gemini 3 Flash (Google)",
+            "gemini/gemini-3-pro-high": "Gemini 3 Pro High (Google)",
             # Groq (free tier available)
             "groq/llama-3.3-70b-versatile": "Llama 3.3 70B (Groq)",
             "groq/llama-3.1-8b-instant": "Llama 3.1 8B (Groq)",
