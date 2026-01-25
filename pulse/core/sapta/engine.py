@@ -578,18 +578,26 @@ class SaptaEngine:
     def format_scan_results(
         self,
         results: list[SaptaResult],
-        title: str = "SAPTA Scan Results",
+        title: str = "SAPTA 掃描結果",
     ) -> str:
         """Format scan results as a table."""
         if not results:
-            return "No stocks found matching SAPTA criteria."
+            return "未找到符合 SAPTA 條件的股票"
 
-        lines = [title, "=" * 60]
+        lines = []
+        
+        # Wrap in code block for proper formatting in Markdown viewer
+        lines.append("```text")
+        
+        # Title and separator
+        lines.append(title)
+        lines.append("=" * 60)
 
         # Header
-        lines.append(f"{'Ticker':<8} {'Status':<12} {'Score':>8} {'Confidence':<10} {'Wave':<8}")
+        lines.append(f"{'股票代碼':<8} {'狀態':<12} {'分數':>8} {'信心度':<10} {'波浪':<8}")
         lines.append("-" * 60)
 
+        # Data rows
         for r in results:
             wave = r.wave_phase[:7] if r.wave_phase else "-"
             lines.append(
@@ -597,7 +605,10 @@ class SaptaEngine:
                 f"{r.confidence.value:<10} {wave:<8}"
             )
 
+        # Footer
         lines.append("-" * 60)
-        lines.append(f"Total: {len(results)} stocks")
+        lines.append(f"總計: {len(results)} 檔股票")
+        
+        lines.append("```")
 
         return "\n".join(lines)

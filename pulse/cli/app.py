@@ -378,7 +378,7 @@ class PulseApp(App):
             w.remove()
 
         # Add new thinking indicator
-        chat.mount(Static("thinking...", classes="thinking", id="thinking"))
+        chat.mount(Static("thinking...", classes="thinking"))
         self.call_later(self._scroll_chat_end)
 
     def _remove_thinking(self) -> None:

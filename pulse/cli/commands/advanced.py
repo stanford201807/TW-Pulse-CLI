@@ -294,10 +294,10 @@ Modules (分析模組):
         results = await engine.scan(tickers, min_status=min_status)
 
         if not results:
-            return f"No stocks found in {universe_name} matching SAPTA criteria."
+            return f"在 {universe_name} 中未找到符合 SAPTA 條件的股票"
 
         return engine.format_scan_results(
-            results, title=f"SAPTA Scan: {universe_name} ({len(results)} found)"
+            results, title=f"SAPTA 掃描: {universe_name} (找到 {len(results)} 檔)"
         )
 
     # Single stock analysis
