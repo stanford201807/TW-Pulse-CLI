@@ -47,38 +47,32 @@ class StockAgent:
             r"分析\s*(\d{4})",
             r"analis[ai]s?\s+(\w+)",
             r"查看\s*(\d{4})",
-            r"gimana\s+(\w+)",
             r"看看\s*(\d{4})",
         ],
         "chart": [
             r"圖表\s*(\d{4})",
             r"chart\s+(\w+)",
-            r"grafik\s+(\w+)",
             r"graph\s+(\w+)",
         ],
         "forecast": [
             r"預測\s*(\d{4})",
-            r"prediksi\s+(\w+)",
             r"forecast\s+(\w+)",
-            r"ramal\w*\s+(\w+)",
             r"target\s+(\w+)",
         ],
         "technical": [
             r"技術\s*(\d{4})",
-            r"teknikal\s+(\w+)",
             r"ta\s+(\w+)",
             r"rsi\s+(\w+)",
             r"macd\s+(\w+)",
         ],
         "broker": [
             r"broker\s+(\w+)",
-            r"bandar\s+(\w+)",
+            r"法人\s+(\w+)",
             r"flow\s+(\w+)",
-            r"asing\s+(\w+)",
+            r"外資\s+(\w+)",
         ],
         "compare": [
-            r"比較\s*(\d{4})\s*(?:和|與)\s*(\d{4})",
-            r"bandingi?n?g?\s+(\w+)\s+(?:dan|vs|dengan)\s+(\w+)",
+            r"比較\s*(\d{4})\s*(?:和|與|跟)\s*(\d{4})",
             r"(\w+)\s+vs\s+(\w+)",
         ],
     }
@@ -172,7 +166,7 @@ class StockAgent:
                         return AgentAction(
                             tool="compare",
                             params={"tickers": [ticker, ticker2]},
-                            reason=f"Membandingkan {ticker} vs {ticker2}",
+                            reason=f"比較 {ticker} vs {ticker2}",
                         )
 
                     return AgentAction(
@@ -185,7 +179,7 @@ class StockAgent:
         for ticker in self.KNOWN_TICKERS:
             if ticker.lower() in message_lower:
                 return AgentAction(
-                    tool="fetch_stock", params={"ticker": ticker}, reason=f"Info saham {ticker}"
+                    tool="fetch_stock", params={"ticker": ticker}, reason=f"股票資訊 {ticker}"
                 )
 
         return None
@@ -224,7 +218,7 @@ class StockAgent:
         """
         tool_fn = self._tools.get(action.tool)
         if not tool_fn:
-            return AgentResult(success=False, message=f"Tool tidak ditemukan: {action.tool}")
+            return AgentResult(success=False, message=f"找不到工具: {action.tool}")
 
         try:
             return await tool_fn(**action.params)
@@ -257,7 +251,7 @@ class StockAgent:
         stock = await fetcher.fetch_stock(ticker)
 
         if not stock:
-            return AgentResult(success=False, message=f"Tidak dapat mengambil data {ticker}")
+            return AgentResult(success=False, message=f"無法取得 {ticker} 的資料")
 
         change_symbol = "+" if stock.change >= 0 else ""
         message = f"""{stock.ticker} - {stock.name}
@@ -277,13 +271,13 @@ class StockAgent:
         stock = await fetcher.fetch_stock(ticker)
 
         if not stock:
-            return AgentResult(success=False, message=f"Data tidak tersedia untuk {ticker}")
+            return AgentResult(success=False, message=f"{ticker} 的資料不可用")
 
         analyzer = TechnicalAnalyzer()
         indicators = await analyzer.analyze(ticker)
 
         if not indicators:
-            return AgentResult(success=False, message=f"Analisis gagal untuk {ticker}")
+            return AgentResult(success=False, message=f"{ticker} 的分析失敗")
 
         summary = analyzer.get_indicator_summary(indicators)
 
@@ -314,7 +308,7 @@ class StockAgent:
 
         if not data:
             return AgentResult(
-                success=False, message=f"Data fundamental tidak tersedia untuk {ticker}"
+                success=False, message=f"{ticker} 的基本面資料不可用"
             )
 
         summary = analyzer.get_summary(data)
@@ -359,7 +353,7 @@ class StockAgent:
 
         if df is None or df.empty:
             return AgentResult(
-                success=False, message=f"Data historis tidak tersedia untuk {ticker}"
+                success=False, message=f"{ticker} 的歷史資料不可用"
             )
 
         chart = TerminalChart(width=60, height=15)
@@ -367,9 +361,9 @@ class StockAgent:
         dates = df.index.strftime("%Y-%m-%d").tolist()
         prices = df["Close"].tolist()
 
-        chart_str = chart.price_chart(dates, prices, title=f"{ticker} - 3 Bulan")
+        chart_str = chart.price_chart(dates, prices, title=f"{ticker} - 3 個月")
 
-        return AgentResult(success=True, message=f"Chart {ticker}:", chart=chart_str)
+        return AgentResult(success=True, message=f"{ticker} 圖表:", chart=chart_str)
 
     async def _tool_forecast(self, ticker: str) -> AgentResult:
         """Generate price forecast."""
@@ -381,7 +375,7 @@ class StockAgent:
         df = await fetcher.fetch_history(ticker, period="6mo")
 
         if df is None or df.empty:
-            return AgentResult(success=False, message=f"Data tidak cukup untuk forecast {ticker}")
+            return AgentResult(success=False, message=f"{ticker} 的預測資料不足")
 
         prices = df["Close"].tolist()
         dates = df.index.strftime("%Y-%m-%d").tolist()
@@ -390,7 +384,7 @@ class StockAgent:
         result = await forecaster.forecast(ticker, prices, dates, days=7)
 
         if not result:
-            return AgentResult(success=False, message=f"Forecast gagal untuk {ticker}")
+            return AgentResult(success=False, message=f"{ticker} 的預測失敗")
 
         # Generate forecast chart
         chart = TerminalChart(width=60, height=15)
@@ -399,7 +393,7 @@ class StockAgent:
             forecast=result.predictions,
             lower_bound=result.lower_bound,
             upper_bound=result.upper_bound,
-            title=f"{ticker} - Forecast 7 Hari",
+            title=f"{ticker} - 7 日預測",
         )
 
         message = forecaster.format_forecast(result)
@@ -428,7 +422,7 @@ class StockAgent:
                 )
 
         if len(results) < 2:
-            return AgentResult(success=False, message="Tidak cukup data untuk perbandingan")
+            return AgentResult(success=False, message="資料不足無法比較")
 
         # Build comparison table
         lines = ["股票比較:", ""]

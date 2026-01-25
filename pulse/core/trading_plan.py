@@ -41,7 +41,7 @@ class TradingPlanGenerator:
     DEFAULT_RISK_PERCENT = 2.0  # 2% risk per trade
     DEFAULT_ATR_SL_MULTIPLIER = 1.5  # SL = Entry - (ATR * 1.5)
     DEFAULT_ATR_TP_MULTIPLIER = 2.0  # TP1 = Entry + (ATR * 2.0)
-    DEFAULT_ACCOUNT_SIZE = 100_000_000  # Rp 100 juta default
+    DEFAULT_ACCOUNT_SIZE = 100_000_000  # NT$ 100 萬預設值
 
     def __init__(self):
         self.fetcher = YFinanceFetcher()
@@ -373,35 +373,35 @@ class TradingPlanGenerator:
         if technical.rsi_14:
             rsi = technical.rsi_14
             if rsi < 30:
-                notes.append(f"RSI {rsi:.1f} - Oversold, potential reversal")
+                notes.append(f"RSI {rsi:.1f} - 超賣，可能反轉")
             elif rsi > 70:
                 notes.append(f"RSI {rsi:.1f} - Overbought, caution advised")
             elif 45 <= rsi <= 55:
-                notes.append(f"RSI {rsi:.1f} - Neutral, room to move either way")
+                notes.append(f"RSI {rsi:.1f} - 中性，可雙向移動")
             else:
                 notes.append(
-                    f"RSI {rsi:.1f} - {'Bullish momentum' if rsi > 55 else 'Bearish pressure'}"
+                    f"RSI {rsi:.1f} - {'多頭動能' if rsi > 55 else '空頭壓力'}"
                 )
 
         # MACD note
         if technical.macd and technical.macd_signal:
             if technical.macd > technical.macd_signal:
                 if technical.macd_histogram and technical.macd_histogram > 0:
-                    notes.append("MACD bullish crossover, momentum increasing")
+                    notes.append("MACD 多頭交叉，動能增強")
                 else:
-                    notes.append("MACD bullish but momentum weakening")
+                    notes.append("MACD 多頭但動能減弱")
             else:
-                notes.append("MACD bearish, wait for crossover confirmation")
+                notes.append("MACD 空頭，等待交叉確認")
 
         # Trend note
-        notes.append(f"Trend: {technical.trend.value}")
+        notes.append(f"趨勢：{technical.trend.value}")
 
         # ATR/Volatility note
         atr_percent = (atr / entry) * 100
-        notes.append(f"ATR: Rp {atr:,.0f} ({atr_percent:.2f}% daily volatility)")
+        notes.append(f"ATR: NT$ {atr:,.0f} ({atr_percent:.2f}% 日波動率)")
 
         # Signal note
-        notes.append(f"Signal: {technical.signal.value}")
+        notes.append(f"訊號：{technical.signal.value}")
 
         return notes
 
@@ -412,18 +412,18 @@ class TradingPlanGenerator:
         tp2: float | None,
         stop_loss: float,
     ) -> list[str]:
-        """Generate step-by-step execution strategy."""
+        """生成逐步執行策略。"""
         strategy = [
-            f"1. Entry: Buy at market or limit Rp {entry:,.0f}",
-            f"2. Set stop loss immediately at Rp {stop_loss:,.0f}",
-            f"3. TP1: Sell 50% position at Rp {tp1:,.0f}",
-            f"4. After TP1 hit: Move SL to breakeven (Rp {entry:,.0f})",
+            f"1. 進場：以市價或限價 NT$ {entry:,.0f} 買進",
+            f"2. 立即設定停損於 NT$ {stop_loss:,.0f}",
+            f"3. TP1：於 NT$ {tp1:,.0f} 賣出 50% 倉位",
+            f"4. TP1 觸及後：將停損移至保本價 (NT$ {entry:,.0f})",
         ]
 
         if tp2:
-            strategy.append(f"5. TP2: Sell remaining 50% at Rp {tp2:,.0f}")
+            strategy.append(f"5. TP2：於 NT$ {tp2:,.0f} 賣出剩餘 50%")
 
-        strategy.append("6. If SL hit before TP: Exit entire position, no averaging down")
+        strategy.append("6. 若觸及停損：全數出場，不攜平")
 
         return strategy
 
@@ -470,40 +470,40 @@ class TradingPlanGenerator:
         account_size: float | None = None,
         include_position_sizing: bool = True,
     ) -> str:
-        """Format trading plan as readable text."""
+        """格式化交易計畫為可讀文字。"""
         lines = [
-            f"TRADING PLAN: {plan.ticker}",
-            f"Generated: {plan.generated_at.strftime('%Y-%m-%d %H:%M')}",
+            f"交易計畫: {plan.ticker}",
+            f"生成時間: {plan.generated_at.strftime('%Y-%m-%d %H:%M')}",
             "",
-            "=== ENTRY ===",
-            f"Price: Rp {plan.entry_price:,.0f} (current)",
-            f"Type: {plan.entry_type.title()}",
-            f"Trend: {plan.trend.value} | Signal: {plan.signal.value}",
+            "=== 進場 ===",
+            f"價格: NT$ {plan.entry_price:,.0f} (當前價)",
+            f"類型: {plan.entry_type.title()}",
+            f"趨勢: {plan.trend.value} | 訊號: {plan.signal.value}",
             "",
-            "=== TAKE PROFIT ===",
-            f"TP1: Rp {plan.tp1:,.0f} ({plan.tp1_percent:+.2f}%) - Conservative",
+            "=== 停利目標 ===",
+            f"TP1: NT$ {plan.tp1:,.0f} ({plan.tp1_percent:+.2f}%) - 保守",
         ]
 
         if plan.tp2:
-            lines.append(f"TP2: Rp {plan.tp2:,.0f} ({plan.tp2_percent:+.2f}%) - Moderate")
+            lines.append(f"TP2: NT$ {plan.tp2:,.0f} ({plan.tp2_percent:+.2f}%) - 適中")
         if plan.tp3:
-            lines.append(f"TP3: Rp {plan.tp3:,.0f} ({plan.tp3_percent:+.2f}%) - Aggressive")
+            lines.append(f"TP3: NT$ {plan.tp3:,.0f} ({plan.tp3_percent:+.2f}%) - 積極")
 
         lines.extend(
             [
                 "",
-                "=== STOP LOSS ===",
-                f"SL: Rp {plan.stop_loss:,.0f} ({plan.stop_loss_percent:.2f}%)",
-                f"Method: {plan.stop_loss_method.title()}",
+                "=== 停損 ===",
+                f"SL: NT$ {plan.stop_loss:,.0f} ({plan.stop_loss_percent:.2f}%)",
+                f"方法: {plan.stop_loss_method.title()}",
                 "",
-                "=== RISK/REWARD ===",
-                f"Risk: Rp {plan.risk_amount:,.0f} per share ({abs(plan.stop_loss_percent):.2f}%)",
-                f"Reward (TP1): Rp {plan.reward_tp1:,.0f} ({plan.tp1_percent:.2f}%)",
+                "=== 風險/報酬 ===",
+                f"風險: NT$ {plan.risk_amount:,.0f} 每股 ({abs(plan.stop_loss_percent):.2f}%)",
+                f"報酬 (TP1): NT$ {plan.reward_tp1:,.0f} ({plan.tp1_percent:.2f}%)",
             ]
         )
 
         if plan.reward_tp2:
-            lines.append(f"Reward (TP2): Rp {plan.reward_tp2:,.0f} ({plan.tp2_percent:.2f}%)")
+            lines.append(f"報酬 (TP2): NT$ {plan.reward_tp2:,.0f} ({plan.tp2_percent:.2f}%)")
 
         # R:R ratios with quality indicator
         rr1_quality = self._get_rr_quality_label(plan.rr_ratio_tp1)
@@ -517,8 +517,8 @@ class TradingPlanGenerator:
         lines.extend(
             [
                 "",
-                f"Trade Quality: {plan.trade_quality.value.upper()}",
-                f"Confidence: {plan.confidence}%",
+                f"交易品質: {plan.trade_quality.value.upper()}",
+                f"信心度: {plan.confidence}%",
             ]
         )
 
@@ -531,24 +531,24 @@ class TradingPlanGenerator:
                 lines.extend(
                     [
                         "",
-                        f"=== POSITION SIZING ({plan.suggested_risk_percent}% Risk) ===",
-                        f"Account: Rp {pos['account_size']:,.0f}",
-                        f"Max Risk: Rp {pos['max_risk_amount']:,.0f}",
-                        f"Risk/Share: Rp {pos['risk_per_share']:,.0f}",
-                        f"Suggested: {pos['lots']:,} lot ({pos['shares']:,} shares)",
-                        f"Position Value: Rp {pos['position_value']:,.0f} ({pos['position_percent']:.1f}% of account)",
+                        f"=== 倉位計算 ({plan.suggested_risk_percent}% 風險) ===",
+                        f"帳戶: NT$ {pos['account_size']:,.0f}",
+                        f"最大風險: NT$ {pos['max_risk_amount']:,.0f}",
+                        f"每股風險: NT$ {pos['risk_per_share']:,.0f}",
+                        f"建議: {pos['lots']:,} 張 ({pos['shares']:,} 股)",
+                        f"倉位價值: NT$ {pos['position_value']:,.0f} (帳戶 {pos['position_percent']:.1f}%)",
                     ]
                 )
 
         # Notes
         if plan.notes:
-            lines.extend(["", "=== NOTES ==="])
+            lines.extend(["", "=== 備註 ==="])
             for note in plan.notes:
                 lines.append(f"- {note}")
 
         # Execution strategy
         if plan.execution_strategy:
-            lines.extend(["", "=== EXECUTION STRATEGY ==="])
+            lines.extend(["", "=== 執行策略 ==="])
             for step in plan.execution_strategy:
                 lines.append(step)
 
@@ -556,19 +556,19 @@ class TradingPlanGenerator:
         lines.extend(
             [
                 "",
-                f"Validity: {plan.validity.value} Trade",
+                f"有效期: {plan.validity.value}",
             ]
         )
 
         return "\n".join(lines)
 
     def _get_rr_quality_label(self, rr_ratio: float) -> str:
-        """Get quality label for R:R ratio."""
+        """取得 R:R 比率品質標籤。"""
         if rr_ratio >= 3.0:
-            return "EXCELLENT"
+            return "優秀"
         elif rr_ratio >= 2.0:
-            return "GOOD"
+            return "良好"
         elif rr_ratio >= 1.5:
-            return "FAIR"
+            return "合理"
         else:
-            return "POOR"
+            return "不佳"
