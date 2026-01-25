@@ -236,27 +236,39 @@ class YFinanceFetcher:
     async def fetch_history(
         self,
         ticker: str,
-        period: str = "3mo",
+        period: str | None = None,
+        start = None,
+        end = None,
     ) -> pd.DataFrame | None:
         """
         Fetch historical data as DataFrame (async wrapper).
 
         Args:
             ticker: Stock ticker
-            period: Historical data period
+            period: Historical data period (1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max)
+            start: Start date (datetime or str), used if period is None
+            end: End date (datetime or str), used if period is None
 
         Returns:
             DataFrame with OHLCV data
         """
-        return self.get_history_df(ticker, period)
+        return self.get_history_df(ticker, period=period, start=start, end=end)
 
-    def get_history_df(self, ticker: str, period: str = "1y") -> pd.DataFrame | None:
+    def get_history_df(
+        self,
+        ticker: str,
+        period: str | None = None,
+        start = None,
+        end = None,
+    ) -> pd.DataFrame | None:
         """
         Get historical data as pandas DataFrame (for technical analysis).
 
         Args:
             ticker: Stock ticker
-            period: Historical data period
+            period: Historical data period (1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max)
+            start: Start date (datetime or str), used if period is None
+            end: End date (datetime or str), used if period is None
 
         Returns:
             DataFrame with OHLCV data
@@ -265,7 +277,17 @@ class YFinanceFetcher:
 
         try:
             stock = yf.Ticker(formatted_ticker)
-            hist = stock.history(period=period)
+            
+            # 優先使用 period，若為 None 則使用 start/end
+            if period:
+                hist = stock.history(period=period)
+            elif start and end:
+                hist = stock.history(start=start, end=end)
+            elif start:
+                hist = stock.history(start=start)
+            else:
+                # 預設使用 1 年
+                hist = stock.history(period="1y")
 
             if hist.empty:
                 return None

@@ -72,6 +72,63 @@ class TechnicalAnalyzer:
             log.error(f"Error calculating indicators for {ticker}: {e}")
             return None
 
+    async def calculate_indicators(self, df: pd.DataFrame) -> pd.DataFrame | None:
+        """
+        計算技術指標並附加到 DataFrame（用於回測）。
+
+        Args:
+            df: OHLCV DataFrame（必須包含 Open, High, Low, Close, Volume 欄位）
+
+        Returns:
+            帶有技術指標欄位的 DataFrame
+        """
+        if not HAS_TA:
+            log.error("ta library not installed. Run: pip install ta")
+            return None
+
+        if df is None or df.empty:
+            return None
+
+        try:
+            df = df.copy()
+
+            # 確保欄位名稱為小寫
+            df.columns = df.columns.str.lower()
+
+            close = df["close"]
+            high = df["high"]
+            low = df["low"]
+            volume = df["volume"]
+
+            # 計算移動平均線
+            df["MA_20"] = SMAIndicator(close, n=20).sma_indicator()
+            df["MA_50"] = SMAIndicator(close, n=50).sma_indicator()
+            df["MA_200"] = SMAIndicator(close, n=200).sma_indicator()
+
+            # 計算 RSI
+            df["RSI_14"] = RSIIndicator(close, n=14).rsi()
+
+            # 計算 MACD
+            macd = MACD(close)
+            df["MACD"] = macd.macd()
+            df["MACD_Signal"] = macd.macd_signal()
+            df["MACD_Histogram"] = macd.macd_diff()
+
+            # 計算布林通道
+            bb = BollingerBands(close, n=20, ndev=2)
+            df["BB_Upper"] = bb.bollinger_hband()
+            df["BB_Middle"] = bb.bollinger_mavg()
+            df["BB_Lower"] = bb.bollinger_lband()
+
+            # 計算 ATR
+            df["ATR_14"] = AverageTrueRange(high, low, close, n=14).average_true_range()
+
+            return df
+
+        except Exception as e:
+            log.error(f"Error calculating indicators for DataFrame: {e}")
+            return None
+
     def _calculate_indicators(
         self,
         ticker: str,

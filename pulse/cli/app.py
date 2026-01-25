@@ -327,11 +327,21 @@ class PulseApp(App):
         self.call_later(self._scroll_chat_end)
 
     def _add_response(self, text: str) -> None:
-        chat = self.query_one("#chat", VerticalScroll)
-        chat.mount(Markdown(text, classes="ai-msg"))
-        self._update_status()
-        # Use call_later to ensure scroll happens after mount
-        self.call_later(self._scroll_chat_end)
+        """Add AI response to chat."""
+        log.debug(f"Adding response to UI (len={len(text)})")
+        try:
+            chat = self.query_one("#chat", VerticalScroll)
+            chat.mount(Markdown(text, classes="ai-msg"))
+            self._update_status()
+            
+            # Scroll to end immediately
+            chat.scroll_end(animate=False)
+            
+            # Force refresh of the entire screen to ensure visibility
+            self.screen.refresh()
+            log.debug("Response added and screen refreshed")
+        except Exception as e:
+            log.error(f"Error in _add_response: {e}", exc_info=True)
 
     def _add_chart(self, chart_text: str) -> None:
         """Add chart to chat as plain Static widget."""
@@ -421,25 +431,36 @@ class PulseApp(App):
     @work(exclusive=True)
     async def _run_command(self, cmd: str) -> None:
         """Run command in background with timeout safety."""
+        log.info(f"Worker started for command: {cmd}")
         try:
             # Run with timeout (180 seconds)
             async def run_with_timeout():
                 return await asyncio.wait_for(self.command_registry.execute(cmd), timeout=180.0)
 
             result = await run_with_timeout()
+            log.info("Command execution completed. Removing thinking indicator.")
             self._remove_thinking()
+            
             if result:
+                log.info("Result received. Adding response to chat.")
                 self._add_response(result)
+            else:
+                log.info("No result returned from command.")
+                
         except asyncio.TimeoutError:
+            log.warning("Command finished with timeout.")
             self._remove_thinking()
             self._add_response("分析超時，請稍後再試")
         except Exception as e:
+            log.error(f"Command error: {e}", exc_info=True)
             self._remove_thinking()
-            log.error(f"Command error: {e}")
             error_msg = format_error_response(e)
             self._add_response(error_msg)
         finally:
+            log.info("Refocusing input and forcing app refresh.")
             self._refocus_input()
+            # Force a complete redraw of the application
+            self.refresh()
 
     @work(exclusive=True)
     async def _handle_chat(self, msg: str) -> None:

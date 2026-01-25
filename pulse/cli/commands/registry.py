@@ -218,6 +218,22 @@ class CommandRegistry:
         )
 
         self.register(
+            "plan",
+            self._cmd_plan,
+            "Generate trading plan (交易計劃)",
+            "/plan <TICKER>",
+            aliases=["trade"],
+        )
+
+        self.register(
+            "strategy",
+            self._cmd_strategy,
+            "交易策略系統",
+            "/strategy [strategy_name] [ticker] [backtest]",
+            aliases=["strategies", "策略"],
+        )
+
+        self.register(
             "clear",
             self._cmd_clear,
             "Clear chat history",
@@ -358,6 +374,12 @@ class CommandRegistry:
         from pulse.cli.commands.advanced import sapta_command
 
         return await sapta_command(self.app, args)
+
+    async def _cmd_strategy(self, args: str) -> str:
+        """Strategy command handler."""
+        from pulse.cli.commands.strategy import handle_strategy_command
+
+        return await handle_strategy_command(self.app, args)
 
     async def _cmd_sapta_retrain(self, args: str) -> str:
         """SAPTA Model Retraining command handler."""

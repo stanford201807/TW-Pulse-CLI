@@ -43,10 +43,11 @@ def get_logger(
     console_handler.setFormatter(logging.Formatter("%(message)s"))
     logger.addHandler(console_handler)
 
-    # File handler if specified
-    if log_file:
-        log_file.parent.mkdir(parents=True, exist_ok=True)
-        file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    # Automatically add file logging if DEFAULT_LOG_FILE is defined or log_file is passed
+    target_log_file = log_file or Path("logs/pulse.log")
+    try:
+        target_log_file.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(target_log_file, encoding="utf-8")
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(
             logging.Formatter(
@@ -55,9 +56,12 @@ def get_logger(
             )
         )
         logger.addHandler(file_handler)
+    except Exception as e:
+        # Fallback to console if file logging fails
+        print(f"Failed to setup file logging: {e}")
 
     return logger
 
 
 # Default application logger
-log = get_logger("pulse", level=logging.INFO)
+log = get_logger("pulse", level=logging.DEBUG)
