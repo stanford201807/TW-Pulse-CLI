@@ -1,5 +1,38 @@
 # Changelog
 
+## [2026-01-25] - 繁體中文完整本地化與策略系統規劃 (Traditional Chinese Localization & Strategy System Planning)
+
+### 🚀 新增功能與改進
+- **策略模組系統架構設計**：規劃可擴充的策略模組系統，支援多種交易策略與回測功能。
+  - 設計策略基礎類別 (`BaseStrategy`) 與註冊機制
+  - 規劃首個策略「進階農夫播種術」，包含加減碼、停利停損、資金控管和回測功能
+  - 設計回測引擎架構，支援 5 年歷史數據回測與績效分析
+  - 規劃 CLI 命令介面：`/strategy` 主命令與子命令
+
+### 🔧 優化與調整
+- **完整繁體中文化**：將所有印尼語字串和錯誤訊息翻譯為繁體中文。
+  - `pulse/core/smart_agent.py`：翻譯所有 AI 提示、錯誤訊息、系統提示和對話追蹤關鍵字
+  - `pulse/core/agent.py`：翻譯意圖識別模式、工具方法錯誤訊息和代碼原因訊息
+  - 更新台灣股市專用術語（台灣50、中型100、熱門股等）
+
+- **Trading Plan 繁體中文化**：`pulse/core/trading_plan.py` 完整本地化。
+  - 貨幣符號：Rp（印尼盾）→ NT$（新台幣）
+  - 輸出格式：所有章節標題翻譯為繁體中文（進場、停利目標、停損、風險/報酬等）
+  - 技術指標：翻譯 RSI、MACD、趨勢等指標說明
+  - 執行策略：6 個步驟全部翻譯為繁體中文
+  - 品質標籤：優秀/良好/合理/不佳
+
+### 📝 文檔更新
+- 新增策略系統完整架構文檔 (`strategy_system_plan.md`)
+- 新增策略開發任務清單 (`strategy_task.md`)
+- 新增 Trading Plan 本地化驗證導覽 (`trading_plan_walkthrough.md`)
+- 更新語言修復驗證導覽 (`walkthrough.md`)
+
+### 📂 檔案結構變更
+- 新增 `.gitignore` 條目：`proxy/` 目錄
+
+---
+
 本文件記錄 TW-Pulse-CLI 專案的重要變更歷史。
 
 ---
