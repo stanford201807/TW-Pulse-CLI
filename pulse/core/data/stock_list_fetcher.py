@@ -84,7 +84,24 @@ class StockListFetcher:
             json.dump(all_stocks, f, ensure_ascii=False, indent=2)
         generated_files["json"] = str(json_path)
 
-        # 3. Save CSVs
+        # 3. Save Ticker Lists (Simple list of strings)
+        # Listed (TWSE)
+        if twse:
+            listed_codes = sorted([s["stock_id"] for s in twse])
+            listed_path = data_dir / "tw_codes_listed.json"
+            with open(listed_path, "w", encoding="utf-8") as f:
+                json.dump(listed_codes, f, ensure_ascii=False)
+            generated_files["listed_json"] = str(listed_path)
+
+        # OTC (TPEx)
+        if tpex:
+            otc_codes = sorted([s["stock_id"] for s in tpex])
+            otc_path = data_dir / "tw_codes_otc.json"
+            with open(otc_path, "w", encoding="utf-8") as f:
+                json.dump(otc_codes, f, ensure_ascii=False)
+            generated_files["otc_json"] = str(otc_path)
+
+        # 4. Save CSVs
         if twse:
             twse_csv_path = data_dir / "twse_stocks.csv"
             pd.DataFrame(twse).to_csv(twse_csv_path, index=False, encoding="utf-8-sig")
